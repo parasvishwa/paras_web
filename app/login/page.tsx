@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useRef, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
 import { ArrowRight, RefreshCw } from 'lucide-react';
@@ -9,8 +9,10 @@ import { authApi } from '@/lib/api';
 import { saveAuth } from '@/lib/auth';
 import type { GbUser } from '@/lib/auth';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next') ?? '/';
   const [step, setStep] = useState<1 | 2>(1);
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -87,7 +89,7 @@ export default function LoginPage() {
       saveAuth(token, user);
       const hasRole = Array.isArray(user.role) ? user.role.length > 0 : !!user.role;
       toast.success(hasRole ? 'Welcome back!' : 'OTP verified!');
-      router.push(hasRole ? '/' : '/register');
+      router.push(hasRole ? next : '/register');
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
       toast.error(msg || 'Invalid OTP. Please try again.');
@@ -282,5 +284,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
