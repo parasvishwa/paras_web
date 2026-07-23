@@ -55,8 +55,8 @@ export const profileApi = {
 export const feedApi = {
   getPosts: (page = 1, limit = 10, type?: string) =>
     apiV2.get('/posts', { params: { page, limit, type } }),
-  getMyPosts: (page = 1, limit = 10) =>
-    apiV1.get('/posts/my-posts', { params: { page, limit } }),
+  getMyPosts: (page = 1, limit = 10, userId?: string) =>
+    apiV1.get('/posts', { params: { page, limit, ...(userId ? { userId } : {}) } }),
   createPost: (data: FormData) => apiV2.post('/posts', data),
   likePost: (postId: string) => apiV1.post(`/posts/${postId}/like`),
   addComment: (postId: string, comment: string) =>

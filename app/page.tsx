@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, MessageCircle, Flame, X, ChevronLeft, ChevronRight, Plus, User, Leaf, AlertTriangle } from 'lucide-react';
@@ -97,7 +98,7 @@ function ImageLightbox({ images, startIndex, onClose }: { images: string[]; star
       style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
     >
       {/* Close */}
-      <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', zIndex: 10 }}>
+      <button onClick={e => { e.stopPropagation(); onClose(); }} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', zIndex: 10 }}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
 
@@ -655,9 +656,10 @@ function PostCard({ post }: { post: Post }) {
         </div>
       )}
 
-      {/* Lightbox */}
-      {lightboxIdx !== null && (
-        <ImageLightbox images={imgs} startIndex={lightboxIdx} onClose={() => setLightboxIdx(null)} />
+      {/* Lightbox — portalled to body so card hover states don't flicker */}
+      {lightboxIdx !== null && typeof document !== 'undefined' && createPortal(
+        <ImageLightbox images={imgs} startIndex={lightboxIdx} onClose={() => setLightboxIdx(null)} />,
+        document.body
       )}
 
       {/* Reaction row */}

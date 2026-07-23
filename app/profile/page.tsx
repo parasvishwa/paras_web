@@ -131,8 +131,11 @@ export default function ProfilePage() {
       .then((res) => {
         // handle { data: { user: {...} } }, { data: {...} }, or bare object
         const body = res.data;
-        const data: ProfileData =
-          body?.data?.user ?? body?.data?.profile ?? body?.data ?? body?.user ?? body?.profile ?? body;
+        const userObj = body?.data?.user ?? {};
+        const profileObj = body?.data?.profile ?? {};
+        const data: ProfileData = Object.keys(userObj).length || Object.keys(profileObj).length
+          ? { ...userObj, ...profileObj }
+          : (body?.data ?? body?.user ?? body?.profile ?? body);
         setProfile(data);
         setEditForm({
           fullname: data.fullname || '',
@@ -151,8 +154,9 @@ export default function ProfilePage() {
   useEffect(() => {
     if (activeTab === 'posts' && !postsLoaded) {
       setPostsLoading(true);
+      const uid = profile?.id ?? getStoredUser()?.id;
       feedApi
-        .getMyPosts(1)
+        .getMyPosts(1, 20, uid)
         .then((res) => {
           const d = res.data?.data ?? res.data;
           setPosts(Array.isArray(d) ? d : (d?.posts ?? []));
@@ -161,7 +165,7 @@ export default function ProfilePage() {
         .catch(() => toast.error('Failed to load posts'))
         .finally(() => setPostsLoading(false));
     }
-  }, [activeTab, postsLoaded]);
+  }, [activeTab, postsLoaded, profile]);
 
   useEffect(() => {
     if (activeTab === 'products' && !productsLoaded && profile) {
