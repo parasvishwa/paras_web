@@ -14,15 +14,19 @@ interface RescueDetail {
   id: string;
   type: string;
   description: string;
-  location: string;
-  state: string;
-  district: string;
+  location?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  district?: string;
   status: string;
   photoUrl?: string;
   photo?: string;
   images?: string[];
-  latitude: number;
-  longitude: number;
+  lat?: string | number;
+  lng?: string | number;
+  latitude?: number;
+  longitude?: number;
   createdAt: string;
   distance?: number;
   helpersCount: number;
@@ -77,7 +81,12 @@ export default function RescueDetailPage() {
       try {
         const res = await rescueApi.getById(id);
         const d = res.data;
-        const report = d?.data?.report ?? d?.data ?? d?.report ?? d;
+        const report =
+          d?.data?.reports?.[0] ??
+          d?.data?.report ??
+          d?.data ??
+          d?.report ??
+          d;
         if (!report?.id) { setNotFound(true); }
         else { setRescue(report); }
       } catch {
@@ -110,10 +119,12 @@ export default function RescueDetailPage() {
   );
 
   const r = rescue!;
-  const typeConf = TYPE_CONFIG[r.type] || TYPE_CONFIG.Other;
-  const statusConf = STATUS_CONFIG[r.status] || STATUS_CONFIG.Active;
-  const locationStr = [r.district, r.state].filter(Boolean).join(', ');
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${r.latitude},${r.longitude}`;
+  const typeConf = TYPE_CONFIG[r.type] || TYPE_CONFIG.other;
+  const statusConf = STATUS_CONFIG[r.status] || STATUS_CONFIG.active;
+  const locationStr = r.address || [r.city, r.district, r.state].filter(Boolean).join(', ');
+  const lat = r.lat ?? r.latitude;
+  const lng = r.lng ?? r.longitude;
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 
   const allPhotos: string[] = [];
   if (r.images && r.images.length > 0) allPhotos.push(...r.images);

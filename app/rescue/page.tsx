@@ -15,15 +15,16 @@ interface RescueCase {
   id: string;
   type: string;
   description: string;
-  location: string;
-  state: string;
-  district: string;
+  address?: string;
+  city?: string;
+  district?: string;
+  state?: string;
   status: string;
-  photoUrl: string;
-  latitude: number;
-  longitude: number;
+  photoUrl?: string;
+  lat?: string | number;
+  lng?: string | number;
   createdAt: string;
-  distance: number;
+  distance?: number;
   User: RescueUser;
   helpersCount: number;
 }
@@ -234,7 +235,7 @@ export default function RescuePage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {cases.map((c) => {
-              const locationStr = [c.district, c.state].filter(Boolean).join(', ');
+              const locationStr = c.address || [c.city, c.district, c.state].filter(Boolean).join(', ');
               return (
                 <div key={c.id} className="card card-hover" style={{ padding: 0, display: 'flex', gap: 0, overflow: 'hidden' }}>
                   {/* Photo strip */}
