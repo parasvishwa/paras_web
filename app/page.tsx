@@ -28,6 +28,8 @@ interface Post {
     profilePhoto?: string;
     role: string | string[];
   };
+  likeCount?: number;
+  commentCount?: number;
   _count?: {
     likes: number;
     comments: number;
@@ -442,8 +444,8 @@ function PostCard({ post }: { post: Post }) {
   const initials = author ? getInitials(author.fullname) : 'G';
   const text = post.content ?? post.caption ?? '';
   const imgs: string[] = post.imageUrls ?? post.images ?? (post.imageUrl ? [post.imageUrl] : []);
-  const likes = post._count?.likes ?? post.likesCount ?? 0;
-  const comments = post._count?.comments ?? post.commentsCount ?? 0;
+  const likes = post.likeCount ?? post._count?.likes ?? post.likesCount ?? 0;
+  const comments = post.commentCount ?? post._count?.comments ?? post.commentsCount ?? 0;
 
   return (
     <div className="card card-hover">
