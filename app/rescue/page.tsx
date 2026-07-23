@@ -6,9 +6,6 @@ import { Siren, MapPin, Clock, Users } from 'lucide-react';
 import { rescueApi } from '@/lib/api';
 import { AppGateModal } from '@/components/AppGate';
 
-type RescueStatus = 'Active' | 'In Progress' | 'Rescued';
-type RescueType = 'Injured' | 'Stray' | 'Abandoned' | 'Sick' | 'Other';
-
 interface RescueUser {
   fullname: string;
   profilePhoto: string;
@@ -16,13 +13,13 @@ interface RescueUser {
 
 interface RescueCase {
   id: string;
-  type: RescueType;
+  type: string;
   description: string;
   location: string;
   state: string;
   district: string;
-  status: RescueStatus;
-  photo: string;
+  status: string;
+  photoUrl: string;
   latitude: number;
   longitude: number;
   createdAt: string;
@@ -33,22 +30,46 @@ interface RescueCase {
 
 const STATUS_FILTERS = [
   { label: 'All', value: '' },
-  { label: 'Active', value: 'Active' },
-  { label: 'Rescued', value: 'Rescued' },
+  { label: 'Active', value: 'active' },
+  { label: 'Rescued', value: 'resolved' },
 ];
 
-const TYPE_BADGE: Record<RescueType, string> = {
-  Injured: 'badge badge-danger',
-  Sick: 'badge badge-danger',
-  Stray: 'badge badge-warning',
-  Abandoned: 'badge badge-warning',
-  Other: 'badge',
+const TYPE_BADGE: Record<string, string> = {
+  injured: 'badge badge-danger',
+  sick: 'badge badge-danger',
+  accident: 'badge badge-danger',
+  stray: 'badge badge-warning',
+  abandoned: 'badge badge-warning',
+  illegalTowing: 'badge badge-warning',
+  suspiciousTransport: 'badge badge-warning',
+  dead: 'badge',
+  other: 'badge',
 };
 
-const STATUS_BADGE: Record<RescueStatus, string> = {
-  Active: 'badge badge-danger',
-  'In Progress': 'badge badge-warning',
-  Rescued: 'badge badge-success',
+const TYPE_LABEL: Record<string, string> = {
+  injured: 'Injured',
+  sick: 'Sick',
+  accident: 'Accident',
+  stray: 'Stray',
+  abandoned: 'Abandoned',
+  illegalTowing: 'Illegal Towing',
+  suspiciousTransport: 'Suspicious Transport',
+  dead: 'Dead',
+  other: 'Other',
+};
+
+const STATUS_BADGE: Record<string, string> = {
+  active: 'badge badge-danger',
+  inProgress: 'badge badge-warning',
+  resolved: 'badge badge-success',
+  rescued: 'badge badge-success',
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  active: 'Active',
+  inProgress: 'In Progress',
+  resolved: 'Rescued',
+  rescued: 'Rescued',
 };
 
 function timeAgo(dateStr: string): string {
@@ -218,9 +239,9 @@ export default function RescuePage() {
                 <div key={c.id} className="card card-hover" style={{ padding: 0, display: 'flex', gap: 0, overflow: 'hidden' }}>
                   {/* Photo strip */}
                   <div style={{ width: 100, minHeight: 110, flexShrink: 0, background: 'var(--canvas)', overflow: 'hidden', position: 'relative' }}>
-                    {c.photo ? (
+                    {c.photoUrl ? (
                       <img
-                        src={c.photo}
+                        src={c.photoUrl}
                         alt="rescue"
                         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                       />
@@ -232,7 +253,7 @@ export default function RescuePage() {
                     {/* Status overlay */}
                     <div style={{ position: 'absolute', bottom: 6, left: 6 }}>
                       <span className={STATUS_BADGE[c.status] || 'badge'} style={{ fontSize: 9.5, padding: '2px 6px', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>
-                        {c.status}
+                        {STATUS_LABEL[c.status] || c.status}
                       </span>
                     </div>
                   </div>
@@ -242,7 +263,7 @@ export default function RescuePage() {
                     {/* Type badge */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                       <span className={TYPE_BADGE[c.type] || 'badge'} style={{ fontSize: 11 }}>
-                        {c.type}
+                        {TYPE_LABEL[c.type] || c.type}
                       </span>
                     </div>
 
@@ -316,7 +337,7 @@ export default function RescuePage() {
                       >
                         View Details
                       </Link>
-                      {c.status === 'Active' && (
+                      {c.status === 'active' && (
                         <button
                           onClick={handleHelp}
                           className="btn-primary"
