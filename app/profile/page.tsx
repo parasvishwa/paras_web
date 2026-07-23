@@ -90,13 +90,14 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Edit mode
+  // Edit mode — pre-fill from localStorage immediately so fields aren't blank while API loads
   const [editMode, setEditMode] = useState(false);
+  const _storedUser = getStoredUser();
   const [editForm, setEditForm] = useState({
-    fullname: '',
-    email: '',
+    fullname: _storedUser?.fullname ?? '',
+    email: _storedUser?.email ?? '',
     bio: '',
-    businessName: '',
+    businessName: _storedUser?.businessName ?? '',
     state: '',
     district: '',
   });
@@ -128,7 +129,10 @@ export default function ProfilePage() {
     profileApi
       .get()
       .then((res) => {
-        const data: ProfileData = res.data?.data ?? res.data;
+        // handle { data: { user: {...} } }, { data: {...} }, or bare object
+        const body = res.data;
+        const data: ProfileData =
+          body?.data?.user ?? body?.data?.profile ?? body?.data ?? body?.user ?? body?.profile ?? body;
         setProfile(data);
         setEditForm({
           fullname: data.fullname || '',
