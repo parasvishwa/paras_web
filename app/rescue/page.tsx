@@ -239,7 +239,7 @@ export default function RescuePage() {
               return (
                 <div key={c.id} className="card card-hover" style={{ padding: 0, display: 'flex', gap: 0, overflow: 'hidden' }}>
                   {/* Photo strip */}
-                  <div style={{ width: 100, minHeight: 110, flexShrink: 0, background: 'var(--canvas)', overflow: 'hidden', position: 'relative' }}>
+                  <div style={{ width: 110, height: 110, flexShrink: 0, alignSelf: 'flex-start', background: 'var(--canvas)', overflow: 'hidden', position: 'relative' }}>
                     {c.photoUrl ? (
                       <img
                         src={c.photoUrl}
