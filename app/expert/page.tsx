@@ -125,7 +125,8 @@ export default function ExpertPage() {
               size={18}
             />
             <input
-              className="input pl-10"
+              className="input"
+              style={{ paddingLeft: 40 }}
               placeholder="Search experts..."
               value={search}
               onChange={(e) => {

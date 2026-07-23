@@ -36,8 +36,8 @@ export const apiV2 = makeClient(BASE_V2);
 // ── Auth ──────────────────────────────────────────────────────────────────────
 export const authApi = {
   sendOtp: (mobile: string) => apiV1.post('/auth/user/infobip/send-otp', { mobile }),
-  verifyOtp: (mobile: string, otp: string) =>
-    apiV1.post('/auth/user/infobip/verify-otp', { mobile, otp }),
+  verifyOtp: (mobile: string, otp: string, pinId: string) =>
+    apiV1.post('/auth/user/infobip/verify-otp', { mobile, otp, pinId }),
   signup: (data: Record<string, unknown>) => apiV1.post('/auth/user/signup', data),
   updateRole: (role: string) => apiV1.put('/user/profile/role', { role }),
   socialSignup: (data: Record<string, unknown>) =>

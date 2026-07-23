@@ -16,6 +16,7 @@ export default function LoginPage() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(0);
+  const [pinId, setPinId] = useState('');
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
@@ -32,7 +33,8 @@ export default function LoginPage() {
     }
     setLoading(true);
     try {
-      await authApi.sendOtp(cleaned);
+      const res = await authApi.sendOtp(cleaned);
+      setPinId(res.data?.data?.pinId ?? '');
       toast.success('OTP sent!');
       setStep(2);
       setTimer(30);
@@ -80,7 +82,7 @@ export default function LoginPage() {
     const cleaned = mobile.trim().replace(/\D/g, '');
     setLoading(true);
     try {
-      const res = await authApi.verifyOtp(cleaned, code);
+      const res = await authApi.verifyOtp(cleaned, code, pinId);
       const { token, user } = res.data.data as { token: string; user: GbUser };
       saveAuth(token, user);
       const hasRole = Array.isArray(user.role) ? user.role.length > 0 : !!user.role;
@@ -99,7 +101,8 @@ export default function LoginPage() {
     const cleaned = mobile.trim().replace(/\D/g, '');
     setLoading(true);
     try {
-      await authApi.sendOtp(cleaned);
+      const res = await authApi.sendOtp(cleaned);
+      setPinId(res.data?.data?.pinId ?? '');
       toast.success('OTP resent!');
       setTimer(30);
       setOtp(['', '', '', '', '', '']);

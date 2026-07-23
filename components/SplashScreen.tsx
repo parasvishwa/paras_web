@@ -29,7 +29,7 @@ export default function SplashScreen() {
         position: 'fixed',
         inset: 0,
         zIndex: 9999,
-        background: '#FDFAF6',
+        background: '#FFF3E8',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
