@@ -7,8 +7,6 @@ import { Siren, MapPin, Clock, Users, ArrowLeft, ExternalLink, User } from 'luci
 import { rescueApi } from '@/lib/api';
 import { AppGateModal } from '@/components/AppGate';
 
-type RescueStatus = 'Active' | 'In Progress' | 'Rescued';
-type RescueType = 'Injured' | 'Stray' | 'Abandoned' | 'Sick' | 'Other' | 'Suspicious';
 
 interface RescueDetail {
   id: string;
@@ -125,7 +123,8 @@ export default function RescueDetailPage() {
   const locationStr = r.address || [r.city, r.district, r.state].filter(Boolean).join(', ');
   const lat = r.lat ?? r.latitude;
   const lng = r.lng ?? r.longitude;
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+  const hasCoords = lat != null && lng != null && String(lat) !== '' && String(lng) !== '';
+  const mapsUrl = hasCoords ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}` : null;
 
   const allPhotos: string[] = [];
   if (r.images && r.images.length > 0) allPhotos.push(...r.images);
@@ -142,6 +141,7 @@ export default function RescueDetailPage() {
           <img
             src={allPhotos[activePhoto]}
             alt="rescue"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />
         ) : (
@@ -229,27 +229,29 @@ export default function RescueDetailPage() {
             </div>
           )}
 
-          <a
-            href={mapsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '10px 16px', borderRadius: 8,
-              background: '#DC2626', color: 'white',
-              fontSize: 13, fontWeight: 700, textDecoration: 'none',
-              boxShadow: '0 4px 12px rgba(220,38,38,0.3)',
-            }}
-          >
-            <MapPin size={14} />
-            View on Map
-            <ExternalLink size={12} style={{ opacity: 0.8 }} />
-          </a>
+          {mapsUrl && (
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '10px 16px', borderRadius: 8,
+                background: '#DC2626', color: 'white',
+                fontSize: 13, fontWeight: 700, textDecoration: 'none',
+                boxShadow: '0 4px 12px rgba(220,38,38,0.3)',
+              }}
+            >
+              <MapPin size={14} />
+              View on Map
+              <ExternalLink size={12} style={{ opacity: 0.8 }} />
+            </a>
+          )}
 
           {(r.reporter ?? r.User)?.fullname && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-              {(r.reporter ?? r.User).profilePhoto ? (
-                <img src={(r.reporter ?? r.User).profilePhoto} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+              {(r.reporter ?? r.User)?.profilePhoto ? (
+                <img src={(r.reporter ?? r.User)?.profilePhoto} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
               ) : (
                 <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <User size={14} color="var(--primary)" />
@@ -257,7 +259,7 @@ export default function RescueDetailPage() {
               )}
               <div>
                 <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>Reported by</p>
-                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', margin: 0 }}>{(r.reporter ?? r.User).fullname}</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', margin: 0 }}>{(r.reporter ?? r.User)?.fullname}</p>
               </div>
               {r.contact && (
                 <a

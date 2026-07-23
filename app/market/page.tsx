@@ -200,7 +200,7 @@ export default function MarketPage() {
               {banners.map((b, i) => (
                 <div key={b.id ?? i} className="h-full flex-shrink-0 relative" style={{ width: `${100 / banners.length}%` }}>
                   {bannerSrc(b)
-                    ? <img src={bannerSrc(b)} alt={b.title ?? ''} className="w-full h-full object-cover" />
+                    ? <img src={bannerSrc(b)} alt={b.title ?? ''} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                     : <div className="w-full h-full flex flex-col items-center justify-center gap-3"><ShoppingBag size={48} className="opacity-30" style={{ color: 'var(--primary)' }} />{b.title && <p className="font-semibold text-lg" style={{ color: 'var(--brown)' }}>{b.title}</p>}</div>
                   }
                 </div>

@@ -13,14 +13,14 @@ interface ExpertProfile {
 interface Expert {
   id: string;
   fullname: string;
-  businessName: string;
-  profilePhoto: string;
-  state: string;
-  district: string;
-  avgRating: number;
-  reviewCount: number;
-  followers_count: number;
-  AppUserProfiles: ExpertProfile[];
+  businessName?: string;
+  profilePhoto?: string;
+  state?: string;
+  district?: string;
+  avgRating?: number;
+  reviewCount?: number;
+  followers_count?: number;
+  AppUserProfiles?: ExpertProfile[];
 }
 
 interface Banner {
@@ -181,6 +181,7 @@ export default function ExpertPage() {
                       <img
                         src={expert.profilePhoto}
                         alt={name}
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                         style={{
                           width: 68, height: 68, borderRadius: '50%', objectFit: 'cover',
                           border: '3px solid white',
@@ -236,17 +237,17 @@ export default function ExpertPage() {
                     </p>
                   ) : null}
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: expert.followers_count > 0 ? 5 : 12 }}>
-                    <StarRating rating={expert.avgRating} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: (expert.followers_count ?? 0) > 0 ? 5 : 12 }}>
+                    <StarRating rating={expert.avgRating ?? 0} />
                     <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
-                      {expert.avgRating > 0 ? expert.avgRating.toFixed(1) : ''} ({expert.reviewCount || 0})
+                      {(expert.avgRating ?? 0) > 0 ? (expert.avgRating ?? 0).toFixed(1) : ''} ({expert.reviewCount || 0})
                     </span>
                   </div>
 
-                  {expert.followers_count > 0 && (
+                  {(expert.followers_count ?? 0) > 0 && (
                     <p style={{ fontSize: 11.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 3, marginBottom: 12 }}>
                       <Users size={11} />
-                      {expert.followers_count.toLocaleString()} followers
+                      {(expert.followers_count ?? 0).toLocaleString()} followers
                     </p>
                   )}
 

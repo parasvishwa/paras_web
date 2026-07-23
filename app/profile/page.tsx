@@ -318,7 +318,7 @@ export default function ProfilePage() {
     if (activeTab === 'products' && !productsLoaded && profile) {
       setProductsLoading(true);
       marketApi
-        .getProducts({ userId: getStoredUser()?.id })
+        .getProducts({ vendorId: getStoredUser()?.id })
         .then((res) => {
           const d = res.data?.data ?? res.data;
           setProducts(Array.isArray(d) ? d : (d?.products ?? []));
@@ -401,8 +401,8 @@ export default function ProfilePage() {
         ...prev!,
         ...updated,
         // Don't change actual role — it only changes after admin approves
-        role: prev?.role,
-        ...(roleRequestSubmitted ? { requestedRole: editForm.role, roleChangeStatus: 'Pending', roleChangeRemarks: null } : {}),
+        role: prev?.role ?? '',
+        ...(roleRequestSubmitted ? { requestedRole: editForm.role, roleChangeStatus: 'Pending', roleChangeRemarks: undefined } : {}),
       }));
 
       // Sync localStorage (role stays unchanged until admin approves)

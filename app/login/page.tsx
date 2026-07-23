@@ -83,7 +83,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await authApi.verifyOtp(cleaned, code, pinId);
-      const { token, user } = res.data.data as { token: string; user: GbUser };
+      const { token, user } = (res.data?.data ?? res.data) as { token: string; user: GbUser };
       saveAuth(token, user);
       const hasRole = Array.isArray(user.role) ? user.role.length > 0 : !!user.role;
       toast.success(hasRole ? 'Welcome back!' : 'OTP verified!');

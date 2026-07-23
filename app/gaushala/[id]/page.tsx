@@ -205,7 +205,7 @@ function timeAgo(date: string): string {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function CowIcon() {
+function CowIcon(_props?: { size?: number }) {
   return <span style={{ fontSize: 16, lineHeight: 1 }}>🐄</span>;
 }
 
@@ -1164,7 +1164,7 @@ export default function ProfileDetailPage() {
                 </div>
                 <div style={{ flex: 1 }}>
                   <button
-                    onClick={() => { if (!isLoggedIn()) { toast.error('Please login to review'); router.push('/login'); } else { toast('Review feature coming soon'); } }}
+                    onClick={() => { if (!isLoggedIn()) { toast.error('Please login to review'); router.push('/login'); } }}
                     className="btn-outline"
                     style={{ width: '100%', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   >
@@ -1195,7 +1195,7 @@ export default function ProfileDetailPage() {
                 <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Be the first to share your experience!</p>
                 {!profile.avgRating && (
                   <button
-                    onClick={() => { if (!isLoggedIn()) { toast.error('Please login to review'); router.push('/login'); } else { toast('Review feature coming soon'); } }}
+                    onClick={() => { if (!isLoggedIn()) { toast.error('Please login to review'); router.push('/login'); } }}
                     className="btn-outline"
                     style={{ marginTop: 14, fontSize: 13 }}
                   >
@@ -1307,7 +1307,7 @@ export default function ProfileDetailPage() {
 
               {/* Profile/Store tab switcher */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                {(['profile', ...(hasStore ? ['store'] : [])] as const).map((type) => (
+                {(['profile', ...(hasStore ? ['store'] : [])] as ('profile' | 'store')[]).map((type) => (
                   <button
                     key={type}
                     onClick={() => setShareQrType(type)}

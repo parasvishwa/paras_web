@@ -584,7 +584,7 @@ function LinkPreview({ link }: { link: { type: 'youtube' | 'instagram' | 'facebo
   return null;
 }
 
-function PostCard({ post }: { post: Post }) {
+function PostCard({ post, onInteract }: { post: Post; onInteract?: () => void }) {
   const author = post.User ?? post.user;
   const role = author ? getRoleLabel(author.role) : '';
   const initials = author ? getInitials(author.fullname) : 'G';
@@ -618,7 +618,7 @@ function PostCard({ post }: { post: Post }) {
             }}
           >
             {author?.profilePhoto ? (
-              <img src={resolveImg(author.profilePhoto)} alt={author.fullname} className="w-full h-full object-cover" />
+              <img src={resolveImg(author.profilePhoto)} alt={author.fullname} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
             ) : initials}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -682,12 +682,14 @@ function PostCard({ post }: { post: Post }) {
         style={{ borderTop: '1px solid var(--border)', display: 'flex', gap: 18, alignItems: 'center' }}
       >
         <button
+          onClick={onInteract}
           style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 8, transition: 'color 0.15s' }}
         >
           <Heart size={16} strokeWidth={1.8} />
           <span style={{ fontWeight: 600 }}>{likes}</span>
         </button>
         <button
+          onClick={onInteract}
           style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 8, transition: 'color 0.15s' }}
         >
           <MessageCircle size={16} strokeWidth={1.8} />
@@ -941,7 +943,7 @@ export default function HomePage() {
         {!loading && filteredPosts.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {filteredPosts.map((post, i) => (
-              <PostCard key={post.id ?? i} post={post} />
+              <PostCard key={post.id ?? i} post={post} onInteract={() => setAppGate(true)} />
             ))}
           </div>
         )}
