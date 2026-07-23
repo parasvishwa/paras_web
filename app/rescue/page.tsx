@@ -8,7 +8,7 @@ import { AppGateModal } from '@/components/AppGate';
 
 interface RescueUser {
   fullname: string;
-  profilePhoto: string;
+  profilePhoto?: string;
 }
 
 interface RescueCase {
@@ -25,7 +25,7 @@ interface RescueCase {
   lng?: string | number;
   createdAt: string;
   distance?: number;
-  User: RescueUser;
+  reporter?: RescueUser;
   helpersCount: number;
 }
 
@@ -303,11 +303,11 @@ export default function RescuePage() {
                     </div>
 
                     {/* Reporter */}
-                    {c.User?.fullname && (
+                    {c.reporter?.fullname && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                        {c.User.profilePhoto ? (
+                        {c.reporter?.profilePhoto ? (
                           <img
-                            src={c.User.profilePhoto}
+                            src={c.reporter?.profilePhoto}
                             alt=""
                             style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'cover' }}
                           />
@@ -320,11 +320,11 @@ export default function RescuePage() {
                               background: 'var(--primary-light)', color: 'var(--primary)',
                             }}
                           >
-                            {c.User.fullname[0]?.toUpperCase()}
+                            {c.reporter?.fullname[0]?.toUpperCase()}
                           </div>
                         )}
                         <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                          Reported by {c.User.fullname}
+                          Reported by {c.reporter?.fullname}
                         </span>
                       </div>
                     )}

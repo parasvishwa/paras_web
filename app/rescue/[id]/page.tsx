@@ -33,7 +33,8 @@ interface RescueDetail {
   resolvedVotes?: number;
   stillThereVotes?: number;
   contact?: string;
-  User: { fullname: string; profilePhoto: string };
+  reporter?: { fullname: string; profilePhoto?: string };
+  User?: { fullname: string; profilePhoto?: string };
 }
 
 const TYPE_CONFIG: Record<string, { label: string; bg: string; color: string; emoji: string }> = {
@@ -245,10 +246,10 @@ export default function RescueDetailPage() {
             <ExternalLink size={12} style={{ opacity: 0.8 }} />
           </a>
 
-          {r.User?.fullname && (
+          {(r.reporter ?? r.User)?.fullname && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-              {r.User.profilePhoto ? (
-                <img src={r.User.profilePhoto} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+              {(r.reporter ?? r.User).profilePhoto ? (
+                <img src={(r.reporter ?? r.User).profilePhoto} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
               ) : (
                 <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <User size={14} color="var(--primary)" />
@@ -256,7 +257,7 @@ export default function RescueDetailPage() {
               )}
               <div>
                 <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>Reported by</p>
-                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', margin: 0 }}>{r.User.fullname}</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', margin: 0 }}>{(r.reporter ?? r.User).fullname}</p>
               </div>
               {r.contact && (
                 <a
