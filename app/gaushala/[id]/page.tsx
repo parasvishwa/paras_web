@@ -1007,18 +1007,14 @@ export default function ProfileDetailPage() {
                 {profile.upiId && (
                   <div style={{ marginBottom: 14 }}>
                     <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>UPI</span>
-                    {/* QR Code — use uploaded image if available, else generate */}
+                    {/* QR Code — generate from upiId first; fall back to uploaded image */}
                     <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
                       <div style={{ background: 'white', padding: 12, borderRadius: 12, border: '1px solid var(--border)', display: 'inline-block' }}>
-                        {profile.upiQrCode ? (
-                          <img src={profile.upiQrCode} alt="UPI QR" style={{ width: 160, height: 160, objectFit: 'contain', display: 'block' }} />
-                        ) : (
-                          <QRCode
-                            value={`upi://pay?pa=${profile.upiId}&pn=${encodeURIComponent(profile.upiMerchantName || profile.businessName || profile.fullname || '')}&cu=INR`}
-                            size={160}
-                            level="M"
-                          />
-                        )}
+                        <QRCode
+                          value={`upi://pay?pa=${profile.upiId}&pn=${encodeURIComponent(profile.upiMerchantName || profile.businessName || profile.fullname || '')}&cu=INR`}
+                          size={160}
+                          level="M"
+                        />
                       </div>
                     </div>
                     <div style={{ background: 'var(--canvas)', borderRadius: 10, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>

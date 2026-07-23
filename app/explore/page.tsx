@@ -130,6 +130,8 @@ function formatDistance(raw: number | string) {
 }
 
 function UserCardComponent({ u, profilePath }: { u: UserCard; profilePath: string }) {
+  const [coverError, setCoverError] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   const name = u.businessName || u.fullname;
   const location = [u.district, u.state].filter(Boolean).join(', ');
   const badgeStyle = u.badge && BADGE_STYLES[u.badge];
@@ -145,8 +147,8 @@ function UserCardComponent({ u, profilePath }: { u: UserCard; profilePath: strin
       {/* Cover photo — overflow:hidden is on an inner div so the avatar isn't clipped */}
       <div style={{ position: 'relative', height: 160, flexShrink: 0 }}>
         <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-          {coverSrc ? (
-            <img src={coverSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          {coverSrc && !coverError ? (
+            <img src={coverSrc} alt="" onError={() => setCoverError(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           ) : (
             <div style={{ width: '100%', height: '100%', background: '#FDFAF6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <img src="/logo.png" alt="" style={{ height: 36, opacity: 0.15, objectFit: 'contain', pointerEvents: 'none' }} />
@@ -168,8 +170,8 @@ function UserCardComponent({ u, profilePath }: { u: UserCard; profilePath: strin
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: 'white', fontWeight: 800, fontSize: 14, flexShrink: 0,
         }}>
-          {avatarSrc
-            ? <img src={avatarSrc} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          {avatarSrc && !avatarError
+            ? <img src={avatarSrc} alt={name} onError={() => setAvatarError(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             : name.slice(0, 2).toUpperCase()}
         </div>
         {/* Badge top-right */}
