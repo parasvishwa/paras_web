@@ -34,7 +34,6 @@ interface RescueCase {
 const STATUS_FILTERS = [
   { label: 'All', value: '' },
   { label: 'Active', value: 'Active' },
-  { label: 'In Progress', value: 'In Progress' },
   { label: 'Rescued', value: 'Rescued' },
 ];
 
