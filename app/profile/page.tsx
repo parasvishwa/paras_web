@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -8,7 +9,7 @@ import {
   Camera, Edit2, MapPin, Package, FileText, ShoppingCart,
   LogOut, User, Save, X,
 } from 'lucide-react';
-import { profileApi, feedApi, marketApi, ordersApi } from '@/lib/api';
+import { profileApi, feedApi, marketApi, ordersApi, authApi } from '@/lib/api';
 import { isLoggedIn, getStoredUser, clearAuth, type GbUser } from '@/lib/auth';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -69,6 +70,141 @@ type Tab = 'posts' | 'products' | 'orders';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+// ─── Available roles ──────────────────────────────────────────────────────────
+const ALL_ROLES = ['Influencer', 'Vendor', 'Expert', 'Donor', 'Volunteer', 'Gaushala', 'NGO'] as const;
+
+// ─── Photo crop modal ─────────────────────────────────────────────────────────
+const CIRCLE = 300;
+
+function PhotoCropModal({ file, onConfirm, onCancel }: {
+  file: File;
+  onConfirm: (f: File) => void;
+  onCancel: () => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [tick, setTick] = useState(0);
+
+  const off = useRef({ x: 0, y: 0 });
+  const scaleRef = useRef(1);
+  const dragging = useRef(false);
+  const lastPos = useRef({ x: 0, y: 0 });
+  const lastDist = useRef(0);
+  const baseScale = useRef(1);
+
+  const clamp = useCallback((x: number, y: number, s: number) => {
+    if (!imgRef.current) return { x, y };
+    const img = imgRef.current;
+    const mx = Math.max(0, (img.naturalWidth * s - CIRCLE) / 2);
+    const my = Math.max(0, (img.naturalHeight * s - CIRCLE) / 2);
+    return { x: Math.min(mx, Math.max(-mx, x)), y: Math.min(my, Math.max(-my, y)) };
+  }, []);
+
+  const bump = () => setTick(n => n + 1);
+
+  useEffect(() => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      imgRef.current = img;
+      scaleRef.current = Math.max(CIRCLE / img.naturalWidth, CIRCLE / img.naturalHeight);
+      off.current = { x: 0, y: 0 };
+      setLoaded(true);
+    };
+    img.src = url;
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  useEffect(() => {
+    if (!canvasRef.current || !imgRef.current || !loaded) return;
+    const ctx = canvasRef.current.getContext('2d')!;
+    const img = imgRef.current;
+    const s = scaleRef.current;
+    const { x, y } = off.current;
+    const w = img.naturalWidth * s;
+    const h = img.naturalHeight * s;
+    ctx.clearRect(0, 0, CIRCLE, CIRCLE);
+    ctx.drawImage(img, (CIRCLE - w) / 2 + x, (CIRCLE - h) / 2 + y, w, h);
+  });
+
+  const onMouseDown = (e: React.MouseEvent) => { dragging.current = true; lastPos.current = { x: e.clientX, y: e.clientY }; };
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!dragging.current) return;
+    const dx = e.clientX - lastPos.current.x; const dy = e.clientY - lastPos.current.y;
+    lastPos.current = { x: e.clientX, y: e.clientY };
+    off.current = clamp(off.current.x + dx, off.current.y + dy, scaleRef.current);
+    bump();
+  };
+  const onMouseUp = () => { dragging.current = false; };
+
+  const onWheel = (e: React.WheelEvent) => {
+    const ns = Math.max(0.5, Math.min(6, scaleRef.current * (e.deltaY < 0 ? 1.08 : 0.92)));
+    scaleRef.current = ns;
+    off.current = clamp(off.current.x, off.current.y, ns);
+    bump();
+  };
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) { lastPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; lastDist.current = 0; baseScale.current = scaleRef.current; }
+    else if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX; const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastDist.current = Math.sqrt(dx * dx + dy * dy); baseScale.current = scaleRef.current;
+    }
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    if (e.touches.length === 1) {
+      const dx = e.touches[0].clientX - lastPos.current.x; const dy = e.touches[0].clientY - lastPos.current.y;
+      lastPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      off.current = clamp(off.current.x + dx, off.current.y + dy, scaleRef.current); bump();
+    } else if (e.touches.length === 2 && lastDist.current > 0) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX; const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      scaleRef.current = Math.max(0.5, Math.min(6, baseScale.current * (dist / lastDist.current)));
+      off.current = clamp(off.current.x, off.current.y, scaleRef.current); bump();
+    }
+  };
+
+  const setZoom = (v: number) => { scaleRef.current = v; off.current = clamp(off.current.x, off.current.y, v); bump(); };
+
+  const handleConfirm = () => {
+    if (!imgRef.current) return;
+    const out = document.createElement('canvas');
+    const SIZE = 480; out.width = SIZE; out.height = SIZE;
+    const ctx = out.getContext('2d')!;
+    const img = imgRef.current; const s = scaleRef.current; const { x, y } = off.current;
+    const ratio = SIZE / CIRCLE;
+    ctx.drawImage(img, ((CIRCLE - img.naturalWidth * s) / 2 + x) * ratio, ((CIRCLE - img.naturalHeight * s) / 2 + y) * ratio, img.naturalWidth * s * ratio, img.naturalHeight * s * ratio);
+    out.toBlob(blob => { if (blob) onConfirm(new File([blob], 'avatar.jpg', { type: 'image/jpeg' })); }, 'image/jpeg', 0.92);
+  };
+
+  if (typeof document === 'undefined') return null;
+  void tick;
+
+  const zBtn: React.CSSProperties = { width: 30, height: 30, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.35)', background: 'transparent', color: '#fff', fontSize: 18, cursor: 'pointer', lineHeight: 1, flexShrink: 0 };
+
+  return createPortal(
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.93)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 22 }}>
+      <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13, margin: 0 }}>Drag to reposition · Scroll or pinch to zoom</p>
+      <canvas ref={canvasRef} width={CIRCLE} height={CIRCLE} style={{ display: 'block', borderRadius: '50%', border: '3px solid rgba(255,255,255,0.85)', cursor: loaded ? 'grab' : 'default', touchAction: 'none', background: '#111' }}
+        onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
+        onWheel={onWheel} onTouchStart={onTouchStart} onTouchMove={onTouchMove}
+        onTouchEnd={() => { dragging.current = false; lastDist.current = 0; }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: CIRCLE }}>
+        <button onClick={() => setZoom(Math.max(0.5, scaleRef.current * 0.88))} style={zBtn}>−</button>
+        <input type="range" min={50} max={500} step={1} value={Math.round(scaleRef.current * 100)} onChange={e => setZoom(+e.target.value / 100)} style={{ flex: 1, accentColor: '#F07B1D' }} />
+        <button onClick={() => setZoom(Math.min(6, scaleRef.current * 1.15))} style={zBtn}>+</button>
+      </div>
+      <div style={{ display: 'flex', gap: 12 }}>
+        <button onClick={onCancel} style={{ padding: '10px 28px', borderRadius: 100, border: '1.5px solid rgba(255,255,255,0.3)', background: 'transparent', color: '#fff', fontSize: 14, cursor: 'pointer' }}>Cancel</button>
+        <button onClick={handleConfirm} disabled={!loaded} style={{ padding: '10px 28px', borderRadius: 100, border: 'none', background: loaded ? '#F07B1D' : '#555', color: '#fff', fontSize: 14, fontWeight: 700, cursor: loaded ? 'pointer' : 'default' }}>Apply</button>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function getRoles(profile: ProfileData): string[] {
   if (!profile?.role) return [];
   const arr = Array.isArray(profile.role) ? profile.role : [profile.role];
@@ -102,9 +238,11 @@ export default function ProfilePage() {
     businessName: _storedUser?.businessName ?? '',
     state: '',
     district: '',
+    role: Array.isArray(_storedUser?.role) ? (_storedUser.role[0] ?? '') : (_storedUser?.role ?? ''),
   });
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -146,6 +284,7 @@ export default function ProfilePage() {
           businessName: data.businessName || '',
           state: data.state || '',
           district: data.district || '',
+          role: Array.isArray(data.role) ? (data.role[0] ?? '') : (data.role ?? ''),
         });
       })
       .catch(() => toast.error('Failed to load profile'))
@@ -206,10 +345,9 @@ export default function ProfilePage() {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setPhotoFile(file);
-    const reader = new FileReader();
-    reader.onload = (ev) => setPhotoPreview(ev.target?.result as string);
-    reader.readAsDataURL(file);
+    // reset input so same file can be re-picked
+    e.target.value = '';
+    setCropFile(file);
   };
 
   const cancelEdit = () => {
@@ -224,6 +362,7 @@ export default function ProfilePage() {
         businessName: profile.businessName || '',
         state: profile.state || '',
         district: profile.district || '',
+        role: Array.isArray(profile.role) ? (profile.role[0] ?? '') : (profile.role ?? ''),
       });
     }
   };
@@ -247,7 +386,17 @@ export default function ProfilePage() {
       const res = await profileApi.update(fd);
       const updated: ProfileData = res.data?.data ?? res.data;
 
-      setProfile((prev) => ({ ...prev!, ...updated }));
+      // Update role separately if changed
+      const currentRole = Array.isArray(profile?.role) ? (profile.role[0] ?? '') : (profile?.role ?? '');
+      if (editForm.role && editForm.role !== currentRole) {
+        await authApi.updateRole(editForm.role);
+      }
+
+      setProfile((prev) => ({
+        ...prev!,
+        ...updated,
+        role: editForm.role ? [editForm.role] : prev?.role,
+      }));
 
       // Sync localStorage
       const stored = getStoredUser();
@@ -258,6 +407,7 @@ export default function ProfilePage() {
           email: editForm.email.trim() || stored.email,
           businessName: editForm.businessName.trim() || stored.businessName,
           profilePhoto: updated.profilePhoto || stored.profilePhoto,
+          role: editForm.role ? [editForm.role] : stored.role,
         };
         localStorage.setItem('gb_user', JSON.stringify(next));
       }
@@ -333,7 +483,7 @@ export default function ProfilePage() {
                 <img
                   src={photoSrc}
                   alt={profile.fullname}
-                  className="w-full h-full object-cover object-top"
+                  className="w-full h-full object-cover"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
@@ -489,6 +639,33 @@ export default function ProfilePage() {
                 }
                 placeholder="e.g. Jaipur"
               />
+            </div>
+          </div>
+
+          {/* Role selector */}
+          <div>
+            <label className="label">Role</label>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {ALL_ROLES.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setEditForm({ ...editForm, role: r })}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 100,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    border: editForm.role === r ? '2px solid var(--primary)' : '1.5px solid var(--border)',
+                    background: editForm.role === r ? 'var(--primary-light)' : 'transparent',
+                    color: editForm.role === r ? 'var(--primary)' : 'var(--text-muted)',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {r}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -728,6 +905,22 @@ export default function ProfilePage() {
           <LogOut size={16} /> Sign Out
         </button>
       </div>
+
+      {/* Photo crop modal — opens after image pick */}
+      {cropFile && (
+        <PhotoCropModal
+          file={cropFile}
+          onConfirm={(cropped) => {
+            setCropFile(null);
+            setPhotoFile(cropped);
+            setPhotoPreview(URL.createObjectURL(cropped));
+          }}
+          onCancel={() => {
+            setCropFile(null);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+          }}
+        />
+      )}
     </div>
   );
 }
