@@ -1022,63 +1022,28 @@ export default function ProfileDetailPage() {
                       <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.5 }}>
                         Scan with any UPI app to donate directly to this gaushala
                       </p>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        {([
-                          { name: 'GPay', bg: '#fff', border: '#dadce0', svg: (
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <circle cx="6" cy="6" r="4" fill="#4285F4"/>
-                              <circle cx="18" cy="6" r="4" fill="#EA4335"/>
-                              <circle cx="6" cy="18" r="4" fill="#34A853"/>
-                              <circle cx="18" cy="18" r="4" fill="#FBBC05"/>
-                            </svg>
-                          )},
-                          { name: 'PhonePe', bg: '#5F259F', border: '#5F259F', svg: (
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <circle cx="12" cy="12" r="12" fill="#5F259F"/>
-                              <text x="12" y="16" textAnchor="middle" fill="white" fontSize="9" fontWeight="800" fontFamily="sans-serif">Pe</text>
-                            </svg>
-                          )},
-                          { name: 'Paytm', bg: '#00BAF2', border: '#00BAF2', svg: (
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <circle cx="12" cy="12" r="12" fill="#00BAF2"/>
-                              <text x="12" y="16" textAnchor="middle" fill="white" fontSize="7" fontWeight="800" fontFamily="sans-serif">PAY</text>
-                            </svg>
-                          )},
-                          { name: 'BHIM', bg: '#00A550', border: '#00A550', svg: (
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <circle cx="12" cy="12" r="12" fill="#00A550"/>
-                              <text x="12" y="16" textAnchor="middle" fill="white" fontSize="6.5" fontWeight="800" fontFamily="sans-serif">BHIM</text>
-                            </svg>
-                          )},
-                          { name: 'Amazon Pay', bg: '#FF9900', border: '#FF9900', svg: (
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <circle cx="12" cy="12" r="12" fill="#232F3E"/>
-                              <text x="12" y="14" textAnchor="middle" fill="#FF9900" fontSize="5.5" fontWeight="800" fontFamily="sans-serif">amazon</text>
-                              <text x="12" y="20" textAnchor="middle" fill="white" fontSize="5" fontWeight="700" fontFamily="sans-serif">pay</text>
-                            </svg>
-                          )},
-                        ] as { name: string; bg: string; border: string; svg: React.ReactNode }[]).map(app => (
-                          <div key={app.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                            <div style={{
-                              width: 36, height: 36, borderRadius: 10,
-                              background: app.bg,
-                              border: `1.5px solid ${app.border}`,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-                            }}>
-                              {app.svg}
-                            </div>
-                            <span style={{ fontSize: 9.5, color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>{app.name}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+                        {[
+                          { name: 'GPay',       src: '/upi/gpay.svg' },
+                          { name: 'PhonePe',    src: '/upi/phonepe.svg' },
+                          { name: 'Paytm',      src: '/upi/paytm.svg' },
+                          { name: 'BHIM',       src: '/upi/bhim.svg' },
+                          { name: 'Amazon Pay', src: '/upi/amazonpay.svg' },
+                        ].map(app => (
+                          <div key={app.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                            <img
+                              src={app.src}
+                              alt={app.name}
+                              style={{ width: 44, height: 44, borderRadius: 12, boxShadow: '0 1px 6px rgba(0,0,0,0.10)' }}
+                            />
+                            <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>{app.name}</span>
                           </div>
                         ))}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--canvas)', border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <circle cx="12" cy="12" r="10" stroke="var(--text-muted)" strokeWidth="1.5"/>
-                              <text x="12" y="16" textAnchor="middle" fill="var(--text-muted)" fontSize="7" fontWeight="700" fontFamily="sans-serif">UPI</text>
-                            </svg>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--canvas)', border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 6px rgba(0,0,0,0.08)' }}>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-muted)', letterSpacing: 0.5 }}>UPI</span>
                           </div>
-                          <span style={{ fontSize: 9.5, color: 'var(--text-muted)', fontWeight: 600 }}>& more</span>
+                          <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>& more</span>
                         </div>
                       </div>
                     </div>

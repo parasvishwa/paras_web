@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <rect width="48" height="48" rx="12" fill="#002970"/>
+  <text x="24" y="20" text-anchor="middle" fill="#00B9F1" font-size="9.5" font-weight="900" font-family="Arial,sans-serif" letter-spacing="0.5">pay</text>
+  <text x="24" y="31" text-anchor="middle" fill="white" font-size="9.5" font-weight="900" font-family="Arial,sans-serif" letter-spacing="0.5">tm</text>
+  <!-- Underline accent -->
+  <rect x="13" y="33.5" width="22" height="2" rx="1" fill="#00B9F1"/>
+</svg>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <rect width="48" height="48" rx="12" fill="#5F259F"/>
+  <!-- Phone outline -->
+  <rect x="16" y="10" width="16" height="26" rx="3" fill="none" stroke="white" stroke-width="2"/>
+  <!-- Screen -->
+  <rect x="18" y="14" width="12" height="16" rx="1" fill="white" opacity="0.9"/>
+  <!-- Home button dot -->
+  <circle cx="24" cy="32" r="1.5" fill="white"/>
+  <!-- Pe letter on screen -->
+  <text x="24" y="25" text-anchor="middle" fill="#5F259F" font-size="9" font-weight="900" font-family="Arial,sans-serif">Pe</text>
+</svg>
