@@ -225,7 +225,7 @@ export default function MarketPage() {
           <div className="relative flex gap-2">
             <div className="relative flex-1">
               <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
-              <input className="input pl-11 pr-10" placeholder="Search gau products…" value={draftSearch} onChange={(e) => setDraftSearch(e.target.value)} />
+              <input className="input" style={{ paddingLeft: 44, paddingRight: draftSearch ? 36 : 14 }} placeholder="Search gau products…" value={draftSearch} onChange={(e) => setDraftSearch(e.target.value)} />
               {draftSearch && (
                 <button type="button" onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }}><X size={16} /></button>
               )}
@@ -382,7 +382,7 @@ export default function MarketPage() {
               className="input"
               value={sort}
               onChange={(e) => handleSort(e.target.value)}
-              style={{ paddingRight: 32, paddingLeft: 12, appearance: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, height: 38, borderRadius: 10 }}
+              style={{ paddingRight: 32, paddingLeft: 12, paddingTop: 8, paddingBottom: 8, appearance: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, borderRadius: 10 }}
             >
               <option value="">Newest</option>
               <option value="price_asc">Price: Low to High</option>

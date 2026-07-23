@@ -8,6 +8,14 @@ import { feedApi, rescueApi } from '@/lib/api';
 import { isLoggedIn } from '@/lib/auth';
 import { AppGateModal } from '@/components/AppGate';
 
+const BACKEND = 'https://app.gaubook.org';
+function resolveImg(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('/')) return `${BACKEND}${url}`;
+  return url;
+}
+
 interface Post {
   id: string;
   content?: string;
@@ -68,14 +76,78 @@ const FILTERS = [
   { label: 'Volunteer', value: 'Volunteer' },
 ];
 
-function ImageGrid({ images }: { images: string[] }) {
+/* ── Image Lightbox ── */
+function ImageLightbox({ images, startIndex, onClose }: { images: string[]; startIndex: number; onClose: () => void }) {
+  const [idx, setIdx] = useState(startIndex);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowRight') setIdx(i => Math.min(i + 1, images.length - 1));
+      if (e.key === 'ArrowLeft') setIdx(i => Math.max(i - 1, 0));
+    };
+    document.addEventListener('keydown', handler);
+    document.body.style.overflow = 'hidden';
+    return () => { document.removeEventListener('keydown', handler); document.body.style.overflow = ''; };
+  }, [images.length, onClose]);
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+    >
+      {/* Close */}
+      <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', zIndex: 10 }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+
+      {/* Prev */}
+      {idx > 0 && (
+        <button onClick={e => { e.stopPropagation(); setIdx(i => i - 1); }}
+          style={{ position: 'absolute', left: 12, background: 'rgba(255,255,255,0.14)', border: 'none', borderRadius: '50%', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><polyline points="15,18 9,12 15,6"/></svg>
+        </button>
+      )}
+
+      {/* Image */}
+      <img
+        src={images[idx]}
+        alt=""
+        onClick={e => e.stopPropagation()}
+        style={{ maxWidth: '92vw', maxHeight: '88vh', objectFit: 'contain', borderRadius: 10, boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }}
+      />
+
+      {/* Next */}
+      {idx < images.length - 1 && (
+        <button onClick={e => { e.stopPropagation(); setIdx(i => i + 1); }}
+          style={{ position: 'absolute', right: 12, background: 'rgba(255,255,255,0.14)', border: 'none', borderRadius: '50%', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><polyline points="9,18 15,12 9,6"/></svg>
+        </button>
+      )}
+
+      {/* Dots */}
+      {images.length > 1 && (
+        <div style={{ position: 'absolute', bottom: 20, display: 'flex', gap: 6 }}>
+          {images.map((_, i) => (
+            <div key={i} onClick={e => { e.stopPropagation(); setIdx(i); }}
+              style={{ width: i === idx ? 20 : 7, height: 7, borderRadius: 100, background: i === idx ? 'white' : 'rgba(255,255,255,0.35)', cursor: 'pointer', transition: 'all 0.2s' }} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ImageGrid({ images, onImageClick }: { images: string[]; onImageClick: (i: number) => void }) {
   const count = Math.min(images.length, 4);
   if (!count) return null;
+
+  const imgStyle: React.CSSProperties = { cursor: 'pointer', transition: 'opacity 0.15s' };
 
   if (count === 1) {
     return (
       <div className="rounded-xl overflow-hidden" style={{ aspectRatio: '1/1' }}>
-        <img src={images[0]} alt="" className="w-full h-full object-cover" />
+        <img src={images[0]} alt="" className="w-full h-full object-cover" style={imgStyle} onClick={() => onImageClick(0)} />
       </div>
     );
   }
@@ -84,7 +156,7 @@ function ImageGrid({ images }: { images: string[] }) {
     return (
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, borderRadius: 12, overflow: 'hidden' }}>
         {images.slice(0, 2).map((img, i) => (
-          <img key={i} src={img} alt="" className="w-full object-cover" style={{ aspectRatio: '1' }} />
+          <img key={i} src={img} alt="" className="w-full object-cover" style={{ aspectRatio: '1', ...imgStyle }} onClick={() => onImageClick(i)} />
         ))}
       </div>
     );
@@ -92,19 +164,10 @@ function ImageGrid({ images }: { images: string[] }) {
 
   if (count === 3) {
     return (
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gridTemplateRows: '140px 140px',
-          gap: 2,
-          borderRadius: 12,
-          overflow: 'hidden',
-        }}
-      >
-        <img src={images[0]} alt="" className="object-cover w-full h-full" style={{ gridRow: '1 / 3' }} />
-        <img src={images[1]} alt="" className="object-cover w-full h-full" />
-        <img src={images[2]} alt="" className="object-cover w-full h-full" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '140px 140px', gap: 2, borderRadius: 12, overflow: 'hidden' }}>
+        <img src={images[0]} alt="" className="object-cover w-full h-full" style={{ gridRow: '1 / 3', ...imgStyle }} onClick={() => onImageClick(0)} />
+        <img src={images[1]} alt="" className="object-cover w-full h-full" style={imgStyle} onClick={() => onImageClick(1)} />
+        <img src={images[2]} alt="" className="object-cover w-full h-full" style={imgStyle} onClick={() => onImageClick(2)} />
       </div>
     );
   }
@@ -112,7 +175,7 @@ function ImageGrid({ images }: { images: string[] }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, borderRadius: 12, overflow: 'hidden' }}>
       {images.slice(0, 4).map((img, i) => (
-        <img key={i} src={img} alt="" className="w-full object-cover" style={{ aspectRatio: '1' }} />
+        <img key={i} src={img} alt="" className="w-full object-cover" style={{ aspectRatio: '1', ...imgStyle }} onClick={() => onImageClick(i)} />
       ))}
     </div>
   );
@@ -308,7 +371,7 @@ function StoryViewer({
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             {author?.profilePhoto
-              ? <img src={author.profilePhoto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ? <img src={resolveImg(author.profilePhoto)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               : <span style={{ color: 'white', fontWeight: 800, fontSize: 16 }}>
                   {(author?.fullname ?? 'G')[0].toUpperCase()}
                 </span>
@@ -421,7 +484,7 @@ function StoryStrip({ stories, onStoryClick, onAddStory }: {
             }}>
               <div style={{ width: '100%', height: '100%', borderRadius: '50%', border: '2.5px solid white', overflow: 'hidden', background: 'var(--primary-light)' }}>
                 {author?.profilePhoto
-                  ? <img src={author.profilePhoto} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ? <img src={resolveImg(author.profilePhoto)} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, var(--primary) 0%, var(--brown) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: 22 }}>
                       {name[0].toUpperCase()}
                     </div>
@@ -438,6 +501,88 @@ function StoryStrip({ stories, onStoryClick, onAddStory }: {
   );
 }
 
+// ── Link preview helpers ──────────────────────────────────────────────────
+function extractYouTubeId(url: string): string | null {
+  const m =
+    url.match(/[?&]v=([a-zA-Z0-9_-]{11})/) ||
+    url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/) ||
+    url.match(/\/shorts\/([a-zA-Z0-9_-]{11})/) ||
+    url.match(/\/embed\/([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+function detectLink(text: string): { type: 'youtube' | 'instagram' | 'facebook'; url: string } | null {
+  const urls = text.match(/https?:\/\/[^\s]+/g) ?? [];
+  for (const url of urls) {
+    if (url.includes('youtube.com') || url.includes('youtu.be')) return { type: 'youtube', url };
+    if (url.includes('instagram.com')) return { type: 'instagram', url };
+    if (url.includes('facebook.com') || url.includes('fb.com') || url.includes('fb.watch')) return { type: 'facebook', url };
+  }
+  return null;
+}
+
+function isOnlyUrl(text: string): boolean {
+  return /^\s*https?:\/\/[^\s]+\s*$/.test(text.trim());
+}
+
+function LinkPreview({ link }: { link: { type: 'youtube' | 'instagram' | 'facebook'; url: string } }) {
+  if (link.type === 'youtube') {
+    const videoId = extractYouTubeId(link.url);
+    if (!videoId) return null;
+    return (
+      <div style={{ borderRadius: 12, overflow: 'hidden', position: 'relative', background: '#000', aspectRatio: '16/9' }}>
+        <iframe
+          src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`}
+          title="YouTube video"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+          allowFullScreen
+          style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+        />
+      </div>
+    );
+  }
+
+  if (link.type === 'instagram') {
+    return (
+      <a href={link.url} target="_blank" rel="noopener noreferrer"
+        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderRadius: 12, textDecoration: 'none', background: 'linear-gradient(135deg,#f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)' }}>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8">
+          <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+          <circle cx="12" cy="12" r="4" />
+          <circle cx="17.5" cy="6.5" r="1" fill="white" stroke="none" />
+        </svg>
+        <div>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'white' }}>View on Instagram</div>
+          <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.75)', marginTop: 1 }}>instagram.com</div>
+        </div>
+        <svg style={{ marginLeft: 'auto' }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15,3 21,3 21,9" /><line x1="10" y1="14" x2="21" y2="3" />
+        </svg>
+      </a>
+    );
+  }
+
+  if (link.type === 'facebook') {
+    return (
+      <a href={link.url} target="_blank" rel="noopener noreferrer"
+        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderRadius: 12, textDecoration: 'none', background: '#1877F2' }}>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
+          <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+        </svg>
+        <div>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'white' }}>View on Facebook</div>
+          <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.75)', marginTop: 1 }}>facebook.com</div>
+        </div>
+        <svg style={{ marginLeft: 'auto' }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15,3 21,3 21,9" /><line x1="10" y1="14" x2="21" y2="3" />
+        </svg>
+      </a>
+    );
+  }
+
+  return null;
+}
+
 function PostCard({ post }: { post: Post }) {
   const author = post.User ?? post.user;
   const role = author ? getRoleLabel(author.role) : '';
@@ -446,13 +591,15 @@ function PostCard({ post }: { post: Post }) {
   const imgs: string[] = post.imageUrls ?? post.images ?? (post.imageUrl ? [post.imageUrl] : []);
   const likes = post.likeCount ?? post._count?.likes ?? post.likesCount ?? 0;
   const comments = post.commentCount ?? post._count?.comments ?? post.commentsCount ?? 0;
+  const link = detectLink(text);
+  const showText = text && !isOnlyUrl(text);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   return (
     <div className="card card-hover">
       <div className="p-4 pb-3">
         {/* Author row */}
         <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start' }}>
-          {/* Avatar with ring */}
           <div
             style={{
               width: 42, height: 42, borderRadius: '50%',
@@ -466,11 +613,10 @@ function PostCard({ post }: { post: Post }) {
             }}
           >
             {author?.profilePhoto ? (
-              <img src={author.profilePhoto} alt={author.fullname} className="w-full h-full object-cover" />
+              <img src={resolveImg(author.profilePhoto)} alt={author.fullname} className="w-full h-full object-cover" />
             ) : initials}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            {/* Name + role on one line */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
               <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)', textTransform: 'capitalize', letterSpacing: '-0.2px' }}>
                 {(author?.fullname ?? 'Gaubook User').toLowerCase()}
@@ -481,26 +627,37 @@ function PostCard({ post }: { post: Post }) {
                 </span>
               )}
             </div>
-            {/* Time as muted small text */}
             <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 1, fontWeight: 500 }}>
               {timeAgo(post.createdAt)}
             </p>
           </div>
         </div>
 
-        {/* Content */}
-        {text && (
+        {/* Content text (hide if it's just a bare URL) */}
+        {showText && (
           <p style={{ marginTop: 12, fontSize: 14.5, color: 'var(--text)', lineHeight: 1.62 }}>
             {text}
           </p>
         )}
       </div>
 
+      {/* Link preview (YouTube embed / Instagram / Facebook card) */}
+      {link && (
+        <div className="px-4 pb-3">
+          <LinkPreview link={link} />
+        </div>
+      )}
+
       {/* Images */}
       {imgs.length > 0 && (
         <div className="px-4 pb-3">
-          <ImageGrid images={imgs} />
+          <ImageGrid images={imgs} onImageClick={(i) => setLightboxIdx(i)} />
         </div>
+      )}
+
+      {/* Lightbox */}
+      {lightboxIdx !== null && (
+        <ImageLightbox images={imgs} startIndex={lightboxIdx} onClose={() => setLightboxIdx(null)} />
       )}
 
       {/* Reaction row */}
