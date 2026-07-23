@@ -595,6 +595,10 @@ function PostCard({ post }: { post: Post }) {
   const link = detectLink(text);
   const showText = text && !isOnlyUrl(text);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  const [expanded, setExpanded] = useState(false);
+  const CHAR_LIMIT = 220;
+  const isLong = text.length > CHAR_LIMIT;
+  const displayText = isLong && !expanded ? text.slice(0, CHAR_LIMIT).trimEnd() + '…' : text;
 
   return (
     <div className="card card-hover">
@@ -636,9 +640,19 @@ function PostCard({ post }: { post: Post }) {
 
         {/* Content text (hide if it's just a bare URL) */}
         {showText && (
-          <p style={{ marginTop: 12, fontSize: 14.5, color: 'var(--text)', lineHeight: 1.62 }}>
-            {text}
-          </p>
+          <div style={{ marginTop: 12 }}>
+            <p style={{ fontSize: 14.5, color: 'var(--text)', lineHeight: 1.62, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+              {displayText}
+            </p>
+            {isLong && (
+              <button
+                onClick={() => setExpanded(e => !e)}
+                style={{ background: 'none', border: 'none', padding: '4px 0 0', cursor: 'pointer', fontSize: 13.5, fontWeight: 700, color: 'var(--primary)', letterSpacing: '-0.1px' }}
+              >
+                {expanded ? 'Show less' : 'Show more'}
+              </button>
+            )}
+          </div>
         )}
       </div>
 
