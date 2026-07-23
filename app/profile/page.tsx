@@ -34,6 +34,7 @@ interface ProfileData {
 
 interface Post {
   id: string;
+  userId?: string;
   content?: string;
   mediaUrls?: string[];
   createdAt: string;
@@ -70,7 +71,8 @@ type Tab = 'posts' | 'products' | 'orders';
 
 function getRoles(profile: ProfileData): string[] {
   if (!profile?.role) return [];
-  return Array.isArray(profile.role) ? profile.role : [profile.role];
+  const arr = Array.isArray(profile.role) ? profile.role : [profile.role];
+  return [...new Set(arr)];
 }
 
 const ORDER_STATUS_CLASS: Record<string, string> = {
@@ -156,10 +158,13 @@ export default function ProfilePage() {
       setPostsLoading(true);
       const uid = profile?.id ?? getStoredUser()?.id;
       feedApi
-        .getMyPosts(1, 20, uid)
+        .getMyPosts(1, 100, uid)
         .then((res) => {
           const d = res.data?.data ?? res.data;
-          setPosts(Array.isArray(d) ? d : (d?.posts ?? []));
+          const all: Post[] = Array.isArray(d) ? d : (d?.posts ?? []);
+          // Backend doesn't filter by userId — filter client-side
+          const mine = uid ? all.filter((p) => p.userId === uid) : all;
+          setPosts(mine);
           setPostsLoaded(true);
         })
         .catch(() => toast.error('Failed to load posts'))
@@ -302,22 +307,25 @@ export default function ProfilePage() {
   return (
     <div className="max-w-2xl mx-auto px-4 pb-16">
       {/* ── Cover ──────────────────────────────────────────────────────────── */}
-      <div
-        className="relative h-48 rounded-b-3xl overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #F07B1D 0%, #7B4A1E 100%)' }}
-      >
-        {/* subtle dot pattern */}
+      <div className="relative">
+        {/* Banner — overflow-hidden clips dot pattern only, not the avatar */}
         <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle, #fff 1px, transparent 1px)',
-            backgroundSize: '32px 32px',
-          }}
-        />
+          className="relative h-48 rounded-b-3xl overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #F07B1D 0%, #7B4A1E 100%)' }}
+        >
+          {/* subtle dot pattern */}
+          <div
+            className="absolute inset-0 opacity-10"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle, #fff 1px, transparent 1px)',
+              backgroundSize: '32px 32px',
+            }}
+          />
+        </div>
 
-        {/* Profile photo — centred, hanging off the bottom edge */}
-        <div className="absolute -bottom-14 left-1/2 -translate-x-1/2 z-10">
+        {/* Profile photo — outside banner so overflow-hidden doesn't clip it */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 z-10">
           <div className="relative">
             <div className="w-28 h-28 rounded-full border-4 border-white shadow-lg overflow-hidden bg-[var(--primary-light)]">
               {photoSrc ? (
@@ -325,7 +333,7 @@ export default function ProfilePage() {
                 <img
                   src={photoSrc}
                   alt={profile.fullname}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover object-top"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
@@ -491,7 +499,7 @@ export default function ProfilePage() {
         {[
           {
             label: 'Posts',
-            value: profile.postsCount ?? (postsLoaded ? posts.length : '—'),
+            value: postsLoaded ? posts.length : '—',
           },
           { label: 'Following', value: profile.followingCount ?? 0 },
           { label: 'Followers', value: profile.followersCount ?? 0 },
@@ -539,8 +547,8 @@ export default function ProfilePage() {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
-                {posts.map((post) => (
-                  <div key={post.id} className="card overflow-hidden hover:shadow-md transition-shadow">
+                {posts.map((post, i) => (
+                  <div key={post.id ?? i} className="card overflow-hidden hover:shadow-md transition-shadow">
                     {post.mediaUrls?.[0] ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -598,8 +606,8 @@ export default function ProfilePage() {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
-                {products.map((product) => (
-                  <div key={product.id} className="card overflow-hidden hover:shadow-md transition-shadow">
+                {products.map((product, i) => (
+                  <div key={product.id ?? i} className="card overflow-hidden hover:shadow-md transition-shadow">
                     {product.images?.[0] ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -660,9 +668,9 @@ export default function ProfilePage() {
                 <p className="text-sm mt-1 opacity-70">Your purchases will appear here</p>
               </div>
             ) : (
-              orders.map((order) => (
+              orders.map((order, i) => (
                 <div
-                  key={order.id}
+                  key={order.id ?? i}
                   className="card p-4 flex items-start gap-3 hover:shadow-sm transition-shadow"
                 >
                   <div className="flex-1 min-w-0">
