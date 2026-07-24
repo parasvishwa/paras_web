@@ -297,6 +297,24 @@ select.input { cursor: pointer; }
   pointer-events: none;
 }
 
+/* ── Responsive nav — desktop ── */
+@media (min-width: 768px) {
+  .desktop-nav       { display: flex !important; }
+  .mobile-spacer     { display: none  !important; }
+  .desktop-only-flex { display: flex  !important; }
+  .mobile-bottom-nav { display: none  !important; }
+  .desktop-hamburger { display: none  !important; }
+}
+
+/* ── Responsive nav — mobile ── */
+@media (max-width: 767px) {
+  .desktop-nav       { display: none  !important; }
+  .desktop-only-flex { display: none  !important; }
+  .mobile-bottom-nav { display: block !important; }
+  .desktop-hamburger { display: none  !important; }
+  body { padding-bottom: calc(65px + env(safe-area-inset-bottom)); }
+}
+
 /* ── Warm divider ── */
 hr.warm-divider {
   border: none;

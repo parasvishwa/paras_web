@@ -479,26 +479,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Responsive styles */}
-      <style>{`
-        @media (min-width: 768px) {
-          .desktop-nav { display: flex !important; }
-          .mobile-spacer { display: none !important; }
-          .desktop-only-flex { display: flex !important; }
-          .mobile-bottom-nav { display: none !important; }
-          .desktop-hamburger { display: none !important; }
-        }
-        @media (max-width: 767px) {
-          .desktop-nav { display: none !important; }
-          .desktop-only-flex { display: none !important; }
-          .mobile-bottom-nav { display: block !important; }
-          .desktop-hamburger { display: none !important; }
-        }
-        /* Add bottom padding on mobile so content doesn't hide under bottom nav */
-        @media (max-width: 767px) {
-          body { padding-bottom: calc(65px + env(safe-area-inset-bottom)); }
-        }
-      `}</style>
     </>
   );
 }
