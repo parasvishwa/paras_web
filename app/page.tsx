@@ -303,7 +303,7 @@ function StoryViewer({
             key={imgs[0]}
             src={imgs[0]}
             alt=""
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', background: '#111' }}
           />
         ) : (
           <div
