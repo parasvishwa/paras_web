@@ -249,39 +249,50 @@ export default function ProductDetailPage() {
           )}
 
           {/* Vendor card */}
-          <Link
-            href={`/gaushala/${product.vendorId}`}
-            className="card p-4 flex items-center gap-3 hover:shadow-md transition-shadow group"
-          >
-            <div className="shrink-0">
-              {product.User?.profilePhoto ? (
-                <img
-                  src={product.User.profilePhoto}
-                  alt={vendorName}
-                  className="w-12 h-12 rounded-full object-cover"
-                />
-              ) : (
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold"
-                  style={{ background: 'var(--primary-light)', color: 'var(--primary)' }}
-                >
-                  {vendorName[0]?.toUpperCase()}
+          {(() => {
+            const vendorUserId = product.User?.id;
+            const cardContent = (
+              <>
+                <div className="shrink-0">
+                  {product.User?.profilePhoto ? (
+                    <img
+                      src={product.User.profilePhoto}
+                      alt={vendorName}
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold"
+                      style={{ background: 'var(--primary-light)', color: 'var(--primary)' }}
+                    >
+                      {vendorName[0]?.toUpperCase()}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <Store size={14} style={{ color: 'var(--primary)' }} />
-                <p className="font-semibold text-sm truncate" style={{ color: 'var(--text)' }}>{vendorName}</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <Store size={14} style={{ color: 'var(--primary)' }} />
+                    <p className="font-semibold text-sm truncate" style={{ color: 'var(--text)' }}>{vendorName}</p>
+                  </div>
+                  {vendorLocation && (
+                    <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                      <MapPin size={11} /> {vendorLocation}
+                    </p>
+                  )}
+                </div>
+                {vendorUserId && <ExternalLink size={16} className="shrink-0 group-hover:opacity-100 opacity-40 transition-opacity" style={{ color: 'var(--primary)' }} />}
+              </>
+            );
+            return vendorUserId ? (
+              <Link href={`/gaushala/${vendorUserId}`} className="card p-4 flex items-center gap-3 hover:shadow-md transition-shadow group">
+                {cardContent}
+              </Link>
+            ) : (
+              <div className="card p-4 flex items-center gap-3">
+                {cardContent}
               </div>
-              {vendorLocation && (
-                <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
-                  <MapPin size={11} /> {vendorLocation}
-                </p>
-              )}
-            </div>
-            <ExternalLink size={16} className="shrink-0 group-hover:opacity-100 opacity-40 transition-opacity" style={{ color: 'var(--primary)' }} />
-          </Link>
+            );
+          })()}
 
           {/* Actions */}
           <div className="flex gap-3 flex-wrap">
