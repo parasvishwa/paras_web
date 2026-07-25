@@ -11,6 +11,14 @@ import {
   X, Copy, Check,
 } from 'lucide-react';
 
+const BACKEND = 'https://app.gaubook.org';
+function resolveImg(url?: string | null): string {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('/')) return `${BACKEND}${url}`;
+  return url;
+}
+
 interface ProductVariation {
   id: string;
   name?: string;
@@ -20,17 +28,17 @@ interface ProductVariation {
 
 interface Product {
   id: string;
+  userId?: string;
   name: string;
   description?: string;
   price: number;
   discountPrice?: number;
-  images: string[];
+  imageUrl?: string;
   category?: string;
-  subCategory?: string;
+  subcategory?: string;
   unit?: string;
   stock?: number;
-  vendorId: string;
-  User?: {
+  user?: {
     id?: string;
     fullname?: string;
     businessName?: string;
@@ -39,7 +47,7 @@ interface Product {
     state?: string;
     mobile?: string;
   };
-  ProductVariations?: ProductVariation[];
+  variations?: ProductVariation[];
 }
 
 export default function ProductDetailPage() {
@@ -77,14 +85,11 @@ export default function ProductDetailPage() {
     </div>
   );
 
-  const images = product.images?.length ? product.images : [];
+  const images = [resolveImg(product.imageUrl)].filter(Boolean) as string[];
   const hasImages = images.length > 0;
-  const isVendor = loggedIn && (
-    currentUser?.id === product.vendorId ||
-    currentUser?.id === product.User?.id
-  );
-  const vendorName = product.User?.businessName ?? product.User?.fullname ?? 'Vendor';
-  const vendorLocation = [product.User?.city, product.User?.state].filter(Boolean).join(', ');
+  const isVendor = loggedIn && currentUser?.id === product.userId;
+  const vendorName = product.user?.businessName ?? product.user?.fullname ?? 'Vendor';
+  const vendorLocation = [product.user?.city, product.user?.state].filter(Boolean).join(', ');
   const discounted = product.discountPrice != null && product.discountPrice < product.price;
   const displayPrice = discounted ? product.discountPrice! : product.price;
   const discount = discounted
@@ -96,8 +101,8 @@ export default function ProductDetailPage() {
     const msg = encodeURIComponent(
       `Hi, I'm interested in "${product.name}" listed on Gaubook.\n\nPrice: ₹${displayPrice}${product.unit ? `/${product.unit}` : ''}\nLink: ${window.location.href}\n\nPlease share more details.`
     );
-    if (product.User?.mobile) {
-      window.open(`https://wa.me/${product.User.mobile.replace(/\D/g, '')}?text=${msg}`, '_blank');
+    if (product.user?.mobile) {
+      window.open(`https://wa.me/${product.user.mobile.replace(/\D/g, '')}?text=${msg}`, '_blank');
     } else {
       window.open(`https://wa.me/?text=${msg}`, '_blank');
     }
@@ -188,14 +193,14 @@ export default function ProductDetailPage() {
         {/* ── Product Info ── */}
         <div className="flex flex-col gap-5">
           {/* Category badge */}
-          {(product.category || product.subCategory) && (
+          {(product.category || product.subcategory) && (
             <div className="flex gap-2 flex-wrap">
               {product.category && (
                 <span className="badge badge-primary">{product.category}</span>
               )}
-              {product.subCategory && (
+              {product.subcategory && (
                 <span className="badge" style={{ background: 'var(--canvas)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
-                  {product.subCategory}
+                  {product.subcategory}
                 </span>
               )}
             </div>
@@ -230,11 +235,11 @@ export default function ProductDetailPage() {
           )}
 
           {/* Variations */}
-          {product.ProductVariations && product.ProductVariations.length > 0 && (
+          {product.variations && product.variations.length > 0 && (
             <div>
               <span className="label">Variants</span>
               <div className="flex gap-2 flex-wrap mt-1">
-                {product.ProductVariations.map((v) => (
+                {product.variations.map((v) => (
                   <span
                     key={v.id}
                     className="px-3 py-1.5 rounded-lg text-sm font-medium border"
@@ -250,13 +255,13 @@ export default function ProductDetailPage() {
 
           {/* Vendor card */}
           {(() => {
-            const vendorUserId = product.User?.id;
+            const vendorUserId = product.user?.id;
             const cardContent = (
               <>
                 <div className="shrink-0">
-                  {product.User?.profilePhoto ? (
+                  {product.user?.profilePhoto ? (
                     <img
-                      src={product.User.profilePhoto}
+                      src={resolveImg(product.user.profilePhoto)}
                       alt={vendorName}
                       className="w-12 h-12 rounded-full object-cover"
                     />
