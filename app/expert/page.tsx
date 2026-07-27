@@ -1,18 +1,21 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Search, Star, MapPin, Users, Award } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { expertApi } from '@/lib/api';
+import { Search, Star, MapPin, Users, ChevronLeft, ChevronRight, X, BadgeCheck } from 'lucide-react';
+
+/* ─── Types ──────────────────────────────────────────────────────────────── */
 
 interface ExpertProfile {
-  specialization: string;
-  experience: number;
-  bio: string;
+  specialization?: string;
+  experience?: number;
+  bio?: string;
 }
 
 interface Expert {
   id: string;
-  fullname: string;
+  fullname?: string;
   businessName?: string;
   profilePhoto?: string;
   state?: string;
@@ -20,280 +23,401 @@ interface Expert {
   avgRating?: number;
   reviewCount?: number;
   followers_count?: number;
+  isVerified?: boolean;
   AppUserProfiles?: ExpertProfile[];
 }
 
 interface Banner {
-  id: string;
-  imageUrl: string;
+  id?: string;
+  imageUrl?: string;
+  image?: string;
   title?: string;
 }
 
-function StarRating({ rating }: { rating: number }) {
-  const rounded = Math.round(rating || 0);
+/* ─── Helpers ────────────────────────────────────────────────────────────── */
+
+const BACKEND = 'https://app.gaubook.org';
+function resolveImg(url?: string | null): string {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('/')) return `${BACKEND}${url}`;
+  return url;
+}
+const bannerSrc = (b: Banner) => resolveImg(b.imageUrl ?? b.image);
+const expertName = (e: Expert) => e.businessName ?? e.fullname ?? 'Expert';
+
+/* ─── Skeleton card ─────────────────────────────────────────────────────── */
+
+function SkeletonCard() {
   return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((s) => (
-        <Star
-          key={s}
-          size={12}
-          className={
-            s <= rounded
-              ? 'fill-[#F07B1D] text-[#F07B1D]'
-              : 'text-[var(--border)] fill-[var(--border)]'
-          }
-        />
-      ))}
+    <div style={{
+      background: 'var(--surface)', borderRadius: 20, padding: 12,
+      border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)',
+      display: 'flex', gap: 12,
+    }}>
+      <div className="skeleton" style={{ width: 72, height: 72, borderRadius: 12, flexShrink: 0 }} />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div className="skeleton" style={{ height: 14, width: '70%', borderRadius: 6 }} />
+        <div className="skeleton" style={{ height: 11, width: '50%', borderRadius: 6 }} />
+        <div className="skeleton" style={{ height: 11, width: '80%', borderRadius: 6 }} />
+        <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
+          <div className="skeleton" style={{ height: 20, width: 64, borderRadius: 999 }} />
+        </div>
+      </div>
     </div>
   );
 }
 
-export default function ExpertPage() {
-  const [experts, setExperts] = useState<Expert[]>([]);
-  const [banners, setBanners] = useState<Banner[]>([]);
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
+/* ─── Expert card (Flutter: horizontal row, no buttons) ─────────────────── */
 
+function ExpertCard({ expert }: { expert: Expert }) {
+  const [imgErr, setImgErr] = useState(false);
+  const name    = expertName(expert);
+  const profile = expert.AppUserProfiles?.[0];
+  const initials = name[0]?.toUpperCase() ?? 'E';
+  const src      = resolveImg(expert.profilePhoto);
+  const location = [expert.district, expert.state].filter(Boolean).join(', ');
+  const rating   = expert.avgRating ?? 0;
+  const reviews  = expert.reviewCount ?? 0;
+  const followers = expert.followers_count ?? 0;
+  const exp      = profile?.experience ?? 0;
+  const spec     = profile?.specialization ?? '';
+
+  return (
+    <Link
+      href={`/expert/${expert.id}`}
+      style={{ textDecoration: 'none', display: 'block' }}
+    >
+      <div style={{
+        background: 'var(--surface)', borderRadius: 20, padding: 12,
+        border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)',
+        display: 'flex', gap: 12, alignItems: 'flex-start',
+        transition: 'box-shadow 0.2s, transform 0.2s',
+      }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLDivElement).style.boxShadow = 'var(--shadow-lifted)';
+          (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-1px)';
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLDivElement).style.boxShadow = 'var(--shadow-card)';
+          (e.currentTarget as HTMLDivElement).style.transform = '';
+        }}
+      >
+        {/* Avatar — 72×72, 12px radius, no ring (Flutter spec) */}
+        <div style={{ flexShrink: 0 }}>
+          {src && !imgErr ? (
+            <img
+              src={src}
+              alt={name}
+              onError={() => setImgErr(true)}
+              style={{ width: 72, height: 72, borderRadius: 12, objectFit: 'cover', display: 'block' }}
+            />
+          ) : (
+            <div style={{
+              width: 72, height: 72, borderRadius: 12,
+              background: 'var(--warm-tint)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 800, fontSize: 24, color: 'var(--primary)',
+            }}>
+              {initials}
+            </div>
+          )}
+        </div>
+
+        {/* Info column */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Name */}
+          <p style={{
+            fontSize: 15, fontWeight: 500, color: 'var(--text)',
+            lineHeight: 1.25, letterSpacing: '-0.1px',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            textTransform: 'capitalize',
+          }}>
+            {name}
+          </p>
+
+          {/* Specialization (if any) */}
+          {spec && (
+            <p style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-muted)', marginTop: 1, marginBottom: 2 }}>
+              {spec}
+            </p>
+          )}
+
+          {/* Location */}
+          {location && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 2 }}>
+              <MapPin size={11} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+              <span style={{
+                fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.2px',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {location}
+              </span>
+            </div>
+          )}
+
+          {/* Rating + followers row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
+            <Star size={14} fill="#C9A227" color="#C9A227" />
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)', lineHeight: 1 }}>
+              {rating > 0 ? rating.toFixed(1) : '—'}
+            </span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1 }}>
+              ({reviews})
+            </span>
+            {followers > 0 && (
+              <>
+                <span style={{ fontSize: 11, color: 'var(--border)', lineHeight: 1, marginLeft: 2 }}>·</span>
+                <Users size={13} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1 }}>
+                  {followers.toLocaleString()}
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* Badge pills: experience + verified */}
+          {(exp > 0 || expert.isVerified) && (
+            <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+              {exp > 0 && (
+                <span style={{
+                  fontSize: 11, fontWeight: 600, color: 'var(--primary)',
+                  background: 'rgba(240,123,29,0.10)',
+                  borderRadius: 999, padding: '4px 10px', lineHeight: 1,
+                }}>
+                  {exp} Yrs Exp
+                </span>
+              )}
+              {expert.isVerified && (
+                <span style={{
+                  display: 'flex', alignItems: 'center', gap: 3,
+                  fontSize: 11, fontWeight: 600, color: '#C9A227',
+                  background: 'rgba(201,162,39,0.10)',
+                  borderRadius: 999, padding: '4px 10px', lineHeight: 1,
+                }}>
+                  <BadgeCheck size={12} color="#C9A227" />
+                  Verified
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+/* ─── Page ───────────────────────────────────────────────────────────────── */
+
+export default function ExpertPage() {
+  const [experts, setExperts]       = useState<Expert[]>([]);
+  const [banners, setBanners]       = useState<Banner[]>([]);
+  const [draftSearch, setDraftSearch] = useState('');
+  const [search, setSearch]         = useState('');
+  const [page, setPage]             = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [loading, setLoading]       = useState(true);
+  const [bannerIdx, setBannerIdx]   = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  /* Banners */
+  useEffect(() => {
+    expertApi.getBanners()
+      .then((r) => {
+        const list = r.data?.data ?? r.data?.banners ?? r.data ?? [];
+        setBanners(Array.isArray(list) ? list : []);
+      }).catch(() => {});
+  }, []);
+
+  /* Banner autoplay */
+  useEffect(() => {
+    if (banners.length < 2) return;
+    timerRef.current = setInterval(() => setBannerIdx((i) => (i + 1) % banners.length), 4000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [banners.length]);
+
+  const stopAutoplay = () => { if (timerRef.current) clearInterval(timerRef.current); };
+  const prevBanner   = () => { stopAutoplay(); setBannerIdx((i) => (i - 1 + banners.length) % banners.length); };
+  const nextBanner   = () => { stopAutoplay(); setBannerIdx((i) => (i + 1) % banners.length); };
+
+  /* Experts */
   const fetchExperts = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await expertApi.getExperts({
-        page,
-        limit: 12,
-        ...(search ? { search } : {}),
-      });
-      const d = res.data;
+      const res = await expertApi.getExperts({ page, limit: 15, ...(search ? { search } : {}) });
+      const d     = res.data;
       const inner = d?.data ?? d;
-      const rawList = inner?.gaushalas ?? inner?.users ?? (Array.isArray(inner) ? inner : []);
-      setExperts(Array.isArray(rawList) ? rawList : []);
-      const total = inner?.totalPages ?? d?.totalPages ?? (inner?.total ? Math.ceil(inner.total / 12) : 1);
-      setTotalPages(total);
+      const list  = inner?.gaushalas ?? inner?.users ?? (Array.isArray(inner) ? inner : []);
+      setExperts(Array.isArray(list) ? list : []);
+      setTotalPages(inner?.totalPages ?? d?.totalPages ?? (inner?.total ? Math.ceil(inner.total / 15) : 1));
+      setTotalItems(inner?.total ?? inner?.totalItems ?? (Array.isArray(list) ? list.length : 0));
     } catch {
       setExperts([]);
     }
     setLoading(false);
   }, [page, search]);
 
+  /* debounce search */
   useEffect(() => {
-    expertApi
-      .getBanners()
-      .then((r) => setBanners(r.data?.data || r.data?.banners || []))
-      .catch(() => {});
-  }, []);
+    const t = setTimeout(() => { setPage(1); }, search ? 0 : 0);
+    return () => clearTimeout(t);
+  }, [search]);
 
   useEffect(() => {
-    const t = setTimeout(fetchExperts, search ? 400 : 0);
+    const t = setTimeout(fetchExperts, draftSearch && !search ? 400 : 0);
     return () => clearTimeout(t);
-  }, [fetchExperts, search]);
+  }, [fetchExperts, draftSearch, search]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearch(draftSearch);
+    setPage(1);
+  };
+  const clearSearch = () => { setDraftSearch(''); setSearch(''); setPage(1); };
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--canvas)' }}>
-      {/* Banner strip */}
+    <div style={{ background: 'var(--canvas)', minHeight: '100vh', paddingBottom: 80 }}>
+
+      {/* ── Banner carousel (Flutter: 140px, 20px radius, warm shadow) ── */}
       {banners.length > 0 && (
-        <div
-          className="flex gap-3 px-4 py-3 overflow-x-auto"
-          style={{ scrollbarWidth: 'none' }}
-        >
-          {banners.map((b) => (
-            <img
-              key={b.id}
-              src={b.imageUrl}
-              alt={b.title || 'banner'}
-              className="h-28 w-72 shrink-0 rounded-2xl object-cover"
-            />
-          ))}
+        <div style={{ padding: '8px 12px 0' }}>
+          <div style={{ position: 'relative', height: 140, borderRadius: 20, overflow: 'hidden', background: 'var(--warm-tint)', boxShadow: 'var(--shadow-card)' }}>
+            <div style={{
+              display: 'flex', height: '100%',
+              width: `${banners.length * 100}%`,
+              transform: `translateX(-${bannerIdx * (100 / banners.length)}%)`,
+              transition: 'transform 0.42s cubic-bezier(0.33,1,0.68,1)',
+            }}>
+              {banners.map((b, i) => (
+                <div key={b.id ?? i} style={{ height: '100%', flexShrink: 0, width: `${100 / banners.length}%` }}>
+                  {bannerSrc(b)
+                    ? <img src={bannerSrc(b)} alt={b.title ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    : b.title && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 16 }}><p style={{ fontWeight: 600, color: 'var(--brown)', textAlign: 'center' }}>{b.title}</p></div>
+                  }
+                </div>
+              ))}
+            </div>
+            {banners.length > 1 && (
+              <>
+                <button onClick={prevBanner} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.85)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ChevronLeft size={16} />
+                </button>
+                <button onClick={nextBanner} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.85)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ChevronRight size={16} />
+                </button>
+                {/* Flutter dots: active 18×4 orange, inactive 6×4 #EFE7DC */}
+                <div style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 6, alignItems: 'center' }}>
+                  {banners.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => { stopAutoplay(); setBannerIdx(i); }}
+                      style={{
+                        height: 4, borderRadius: 999, border: 'none', cursor: 'pointer', padding: 0,
+                        transition: 'all 0.26s cubic-bezier(0.33,1,0.68,1)',
+                        width: i === bannerIdx ? 18 : 6,
+                        background: i === bannerIdx ? '#F07B1D' : '#EFE7DC',
+                      }}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Header + search */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
-          <div>
-            <span className="eyebrow">Specialists</span>
-            <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.5px', lineHeight: 1.2, marginTop: 4 }}>
-              Expert Directory
-            </h1>
-            <p style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.5 }}>
-              Connect with Gau experts, vets &amp; specialists
-            </p>
-          </div>
-          <div className="relative sm:ml-auto w-full sm:w-72">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
-              size={18}
-            />
+      {/* ── Search bar ── */}
+      <div style={{ padding: '12px 12px 0', maxWidth: 680, margin: '0 auto' }}>
+        <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8 }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search size={16} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
             <input
               className="input"
-              style={{ paddingLeft: 40 }}
-              placeholder="Search experts..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
+              placeholder="Search gau experts…"
+              value={draftSearch}
+              onChange={(e) => setDraftSearch(e.target.value)}
+              style={{ paddingLeft: 40, paddingRight: draftSearch ? 36 : 14, fontSize: 14 }}
             />
+            {draftSearch && (
+              <button type="button" onClick={clearSearch} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                <X size={15} />
+              </button>
+            )}
           </div>
-        </div>
+          <button type="submit" className="btn-primary" style={{ padding: '0 18px', borderRadius: 12, fontSize: 14, flexShrink: 0 }}>
+            Search
+          </button>
+        </form>
 
-        {/* Grid */}
+        {/* Item count / active search chip */}
+        {(!loading && (totalItems > 0 || search)) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+            {totalItems > 0 && (
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--brown)', background: 'var(--warm-tint)', border: '1px solid var(--border)', borderRadius: 999, padding: '3px 10px' }}>
+                {totalItems} experts
+              </span>
+            )}
+            {search && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: 'var(--primary)', background: 'rgba(240,123,29,0.08)', border: '1px solid rgba(240,123,29,0.2)', borderRadius: 999, padding: '3px 8px' }}>
+                "{search}"
+                <button onClick={clearSearch} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', padding: 0, display: 'flex', lineHeight: 1 }}>
+                  <X size={10} />
+                </button>
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Expert list ── */}
+      <div style={{ maxWidth: 680, margin: '0 auto', padding: '12px 12px 0' }}>
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="card p-5">
-                <div
-                  className="skeleton mx-auto mb-3 rounded-full"
-                  style={{ width: 64, height: 64 }}
-                />
-                <div className="skeleton h-4 rounded mb-2" />
-                <div className="skeleton h-3 rounded w-3/4 mb-1 mx-auto" />
-                <div className="skeleton h-3 rounded w-1/2 mx-auto" />
-              </div>
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         ) : experts.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="text-5xl mb-4">🔍</div>
-            <p className="font-semibold text-[var(--text)] text-lg">No experts found</p>
-            <p className="text-[var(--text-muted)] text-sm mt-1">
-              Try a different search term
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 72, textAlign: 'center' }}>
+            <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'var(--warm-tint)', border: '2px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <Search size={36} color="var(--primary)" strokeWidth={1.5} />
+            </div>
+            <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>No experts found</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+              {search ? 'Try a different search term.' : 'Check back soon!'}
             </p>
+            {search && (
+              <button onClick={clearSearch} className="btn-outline" style={{ marginTop: 16, fontSize: 13, padding: '8px 20px' }}>
+                Clear search
+              </button>
+            )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {experts.map((expert) => {
-              const profile = expert.AppUserProfiles?.[0];
-              const name = expert.fullname || expert.businessName || 'Expert';
-              const initials = name[0]?.toUpperCase() ?? 'E';
-              const location = [expert.district, expert.state]
-                .filter(Boolean)
-                .join(', ');
-
-              return (
-                <div
-                  key={expert.id}
-                  className="card card-hover p-4 flex flex-col items-center text-center"
-                >
-                  {/* Avatar with orange ring + specialty accent */}
-                  <div style={{ position: 'relative', marginBottom: 12 }}>
-                    {expert.profilePhoto ? (
-                      <img
-                        src={expert.profilePhoto}
-                        alt={name}
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                        style={{
-                          width: 68, height: 68, borderRadius: '50%', objectFit: 'cover',
-                          border: '3px solid white',
-                          boxShadow: '0 0 0 2.5px var(--primary)',
-                        }}
-                      />
-                    ) : (
-                      <div
-                        style={{
-                          width: 68, height: 68, borderRadius: '50%',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontWeight: 800, fontSize: 22,
-                          background: 'linear-gradient(135deg, var(--primary-light), #FFE8D0)',
-                          color: 'var(--primary)',
-                          border: '3px solid white',
-                          boxShadow: '0 0 0 2.5px var(--primary)',
-                        }}
-                      >
-                        {initials}
-                      </div>
-                    )}
-                    {/* Experience badge floating */}
-                    {profile?.experience ? (
-                      <div style={{
-                        position: 'absolute', bottom: -4, right: -4,
-                        background: 'var(--gold)',
-                        color: 'white',
-                        fontSize: 9.5, fontWeight: 800,
-                        padding: '2px 5px',
-                        borderRadius: 100,
-                        border: '1.5px solid white',
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {profile.experience}yr
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <h3 style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)', lineHeight: 1.3, textTransform: 'capitalize', letterSpacing: '-0.2px', marginBottom: 5, width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {name}
-                  </h3>
-
-                  {profile?.specialization && (
-                    <span className="badge badge-primary" style={{ fontSize: 10.5, marginBottom: 6, padding: '3px 9px' }}>
-                      {profile.specialization}
-                    </span>
-                  )}
-
-                  {location ? (
-                    <p style={{ fontSize: 11.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 3, marginBottom: 7 }}>
-                      <MapPin size={11} />
-                      {location}
-                    </p>
-                  ) : null}
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: (expert.followers_count ?? 0) > 0 ? 5 : 12 }}>
-                    <StarRating rating={expert.avgRating ?? 0} />
-                    <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
-                      {(expert.avgRating ?? 0) > 0 ? (expert.avgRating ?? 0).toFixed(1) : ''} ({expert.reviewCount || 0})
-                    </span>
-                  </div>
-
-                  {(expert.followers_count ?? 0) > 0 && (
-                    <p style={{ fontSize: 11.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 3, marginBottom: 12 }}>
-                      <Users size={11} />
-                      {(expert.followers_count ?? 0).toLocaleString()} followers
-                    </p>
-                  )}
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', marginTop: 'auto' }}>
-                    <a
-                      href={`/expert/${expert.id}`}
-                      className="btn-primary w-full"
-                      style={{ padding: '9px 16px', fontSize: 13.5, borderRadius: 100, textAlign: 'center', display: 'block' }}
-                    >
-                      Consult Now
-                    </a>
-                    <a
-                      href={`/expert/${expert.id}`}
-                      className="btn-outline w-full"
-                      style={{ padding: '9px 16px', fontSize: 13.5, borderRadius: 100, textAlign: 'center', display: 'block' }}
-                    >
-                      View Profile
-                    </a>
-                  </div>
-                </div>
-              );
-            })}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+            {experts.map((e) => <ExpertCard key={e.id} expert={e} />)}
           </div>
         )}
 
         {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-3 mt-10">
+        {!loading && totalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 24, marginBottom: 8 }}>
             <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="btn-outline disabled:opacity-40"
-              style={{ padding: '8px 20px', fontSize: 14 }}
+              className="btn-outline"
+              style={{ padding: '8px 14px', fontSize: 13 }}
             >
-              Previous
+              <ChevronLeft size={16} />
             </button>
-            <span className="text-sm text-[var(--text-muted)]">
-              Page {page} of {totalPages}
+            <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, padding: '0 8px' }}>
+              {page} / {totalPages}
             </span>
             <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              onClick={() => setPage((p) => p + 1)}
-              className="btn-primary disabled:opacity-40"
-              style={{ padding: '8px 20px', fontSize: 14 }}
+              className="btn-primary"
+              style={{ padding: '8px 14px', fontSize: 13 }}
             >
-              Next
+              <ChevronRight size={16} />
             </button>
           </div>
         )}

@@ -227,7 +227,11 @@ export default function ProfileDetailPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const id = params.id as string;
+  const rawId = params.id as string;
+  // Support slug URLs like "gaushala-name-city-<uuid>" — extract the trailing UUID
+  const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const uuidMatch = rawId.match(UUID_RE);
+  const id = uuidMatch ? uuidMatch[0] : rawId;
 
   const [profile, setProfile] = useState<ProfileDetail | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -417,11 +421,22 @@ export default function ProfileDetailPage() {
     })();
   }, [id]);
 
+  // SEO: update browser tab title once profile loads
+  useEffect(() => {
+    if (!profile) return;
+    const name = profile.businessName || profile.fullname || 'Profile';
+    const role = Array.isArray(profile.role) ? profile.role[0] : profile.role;
+    const roleLabel = role === 'Gaushala' ? 'Gaushala' : role === 'Vendor' ? 'Vendor' : role || 'Profile';
+    const city = profile.city || profile.state || '';
+    const loc = city ? ` — ${city}` : '';
+    document.title = `${name}${loc} | ${roleLabel} on Gaubook`;
+  }, [profile]);
+
   // Load products for all entity types (fallback if not embedded in profile response)
   useEffect(() => {
     if (!profile || products.length > 0) return;
     setProductsLoading(true);
-    marketApi.getProducts({ vendorId: id, limit: 20 })
+    marketApi.getProducts({ userId: id, limit: 20 })
       .then((res) => {
         const payload = res.data?.data ?? res.data ?? {};
         const list: Product[] = Array.isArray(payload) ? payload : (payload.data ?? []);
@@ -544,10 +559,13 @@ export default function ProfileDetailPage() {
   const roleBadge = ROLE_BADGE_STYLE[role] ?? ROLE_BADGE_STYLE.Gaushala;
 
   const eyebrowLabel =
-    isVendor ? 'Vendor Store' :
+    isVendor ? 'Vendor Profile' :
     isExpert ? 'Expert Profile' :
     role === 'NGO' ? 'NGO Profile' :
-    'Gaushala Profile';
+    role === 'Influencer' ? 'Influencer Profile' :
+    role === 'Volunteer' ? 'Volunteer Profile' :
+    role === 'Gaushala' ? 'Gaushala Profile' :
+    `${role} Profile`;
 
   const avatarRadius = isVendor || isExpert ? '50%' : 16;
 

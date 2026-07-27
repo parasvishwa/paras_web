@@ -71,8 +71,8 @@ export const exploreApi = {
   getVendors: (params: Record<string, unknown> = {}) =>
     apiV1.get('/explore/gaushalas', { params: { page: 1, limit: 12, role: 'Vendor', ...params } }),
   getVendorById: (id: string) => apiV1.get(`/explore/gaushalas/${id}`),
-  getNearby: (lat: number, lng: number) =>
-    apiV1.get('/explore/gaushalas/nearby', { params: { lat, lng } }),
+  getNearby: (lat: number, lng: number, radius?: number) =>
+    apiV1.get('/explore/gaushalas/nearby', { params: { lat, lng, ...(radius != null ? { radius } : {}) } }),
 };
 
 // ── Market / Products ─────────────────────────────────────────────────────────

@@ -525,10 +525,14 @@ export default function ProfilePage() {
       </div>
 
       {/* ── Identity block ───────────────────────────────────────────────────── */}
-      <div className="mt-16 text-center">
-        <h1 className="text-2xl font-bold text-[var(--text)] capitalize leading-tight">
-          {profile.fullname}
+      <div className="mt-20 text-center px-2">
+        <h1 className="text-xl font-bold text-[var(--text)] capitalize leading-tight break-words">
+          {profile.businessName ?? profile.fullname}
         </h1>
+
+        {profile.businessName && profile.businessName !== profile.fullname && (
+          <p className="text-sm text-[var(--text-muted)] mt-0.5 capitalize">{profile.fullname}</p>
+        )}
 
         {roles.length > 0 && (
           <div className="flex flex-wrap gap-2 justify-center mt-2">
@@ -540,22 +544,26 @@ export default function ProfilePage() {
 
         {profile.roleChangeStatus === 'Pending' && profile.requestedRole && (
           <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexWrap: 'wrap', gap: 6, marginTop: 8,
             padding: '4px 12px', borderRadius: 100, fontSize: 12, fontWeight: 600,
             background: 'rgba(240,123,29,0.10)', color: 'var(--primary)',
             border: '1.5px solid rgba(240,123,29,0.30)',
+            maxWidth: '100%', wordBreak: 'break-word',
           }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--primary)', display: 'inline-block' }} />
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--primary)', flexShrink: 0, display: 'inline-block' }} />
             Role change to {profile.requestedRole} pending approval
           </div>
         )}
 
         {profile.roleChangeStatus === 'Rejected' && profile.roleChangeRemarks && (
           <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexWrap: 'wrap', gap: 6, marginTop: 8,
             padding: '4px 12px', borderRadius: 100, fontSize: 12, fontWeight: 600,
             background: 'rgba(239,68,68,0.08)', color: '#ef4444',
             border: '1.5px solid rgba(239,68,68,0.25)',
+            maxWidth: '100%', wordBreak: 'break-word',
           }}>
             Role change rejected: {profile.roleChangeRemarks}
           </div>
@@ -569,7 +577,7 @@ export default function ProfilePage() {
         )}
 
         {profile.bio && !editMode && (
-          <p className="mt-3 text-sm text-[var(--text-muted)] max-w-md mx-auto leading-relaxed">
+          <p className="mt-3 text-sm text-[var(--text-muted)] max-w-md mx-auto leading-relaxed break-words">
             {profile.bio}
           </p>
         )}
@@ -583,15 +591,16 @@ export default function ProfilePage() {
             <Edit2 size={14} /> Edit Profile
           </button>
         ) : (
-          <div className="flex gap-2 justify-center mt-4">
+          <div className="flex flex-wrap gap-2 justify-center mt-4">
             <button
               onClick={handleSave}
               disabled={saving}
               className="btn-primary py-2 px-5 text-sm"
+              style={{ minWidth: 130 }}
             >
               <Save size={14} /> {saving ? 'Saving…' : 'Save Changes'}
             </button>
-            <button onClick={cancelEdit} className="btn-outline py-2 px-5 text-sm">
+            <button onClick={cancelEdit} className="btn-outline py-2 px-5 text-sm" style={{ minWidth: 100 }}>
               <X size={14} /> Cancel
             </button>
           </div>

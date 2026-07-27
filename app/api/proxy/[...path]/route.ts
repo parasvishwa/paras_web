@@ -4,6 +4,7 @@ const V2_PATHS = ['/posts'];
 const UAT_V1 = 'https://uat.gaubook.org/api/v1';
 const PROD_V1 = 'https://app.gaubook.org/api/v1';
 const PROD_V2 = 'https://app.gaubook.org/api/v2';
+const LOCAL_V1 = 'http://localhost:5001/v1';
 
 // These endpoints exist on UAT but not yet deployed to prod
 const UAT_ONLY = ['/rescue'];
@@ -61,13 +62,16 @@ async function proxy(req: NextRequest, params: { path: string[] }, method: strin
 
   const isV2 = V2_PATHS.some((p) => pathStr.startsWith(p));
   const isUatOnly = UAT_ONLY.some((p) => pathStr.startsWith(p));
+  const isDev = process.env.NODE_ENV === 'development';
 
-  const base = isUatOnly ? UAT_V1 : isV2 ? PROD_V2 : PROD_V1;
+  const base = isUatOnly ? UAT_V1 : isV2 ? PROD_V2 : isDev ? LOCAL_V1 : PROD_V1;
   const url = new URL(base + pathStr);
   // Only forward safe, known query params — never forward internal/privileged ones
   const ALLOWED_QUERY_PARAMS = new Set([
     'page', 'limit', 'status', 'type', 'role', 'search', 'state', 'district',
-    'badge', 'lat', 'lng', 'userId', 'vendorId', 'requestedRoleChange',
+    'badge', 'lat', 'lng', 'radius', 'userId', 'vendorId', 'requestedRoleChange',
+    'category', 'categoryId', 'subcategory', 'subcategoryId',
+    'sortBy', 'sortOrder',
   ]);
   req.nextUrl.searchParams.forEach((v, k) => {
     if (ALLOWED_QUERY_PARAMS.has(k)) url.searchParams.set(k, v);
