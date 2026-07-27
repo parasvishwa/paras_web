@@ -38,7 +38,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     ? `${name} — ${location} | Gaushala on Gaubook`
     : `${name} | Gaushala on Gaubook`;
 
-  const image = raw?.coverPhoto || raw?.profilePhoto || 'https://app.gaubook.org/og-default.jpg';
+  const coverPhoto = Array.isArray(raw?.coverPhoto) ? raw.coverPhoto[0] : raw?.coverPhoto;
+  const image = coverPhoto || raw?.profilePhoto || 'https://app.gaubook.org/og-default.jpg';
   const nameSlug = name.toLowerCase().replace(/[^\w\s-]/g, '').trim().replace(/[\s_]+/g, '-').replace(/-+/g, '-');
   const citySlug = location ? location.toLowerCase().replace(/[^\w\s-,]/g, '').trim().replace(/[\s_,]+/g, '-').replace(/-+/g, '-') : '';
   const slugParts = [nameSlug, citySlug].filter(Boolean).join('-');
