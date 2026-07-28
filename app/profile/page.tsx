@@ -7,7 +7,7 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import {
   Camera, Edit2, MapPin, Package, FileText, ShoppingCart,
-  LogOut, User, Save, X,
+  LogOut, User, Save, X, Pin, PinOff,
 } from 'lucide-react';
 import { profileApi, feedApi, marketApi, ordersApi, authApi } from '@/lib/api';
 import { isLoggedIn, getStoredUser, clearAuth, type GbUser } from '@/lib/auth';
@@ -254,6 +254,7 @@ export default function ProfilePage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoaded, setPostsLoaded] = useState(false);
   const [postsLoading, setPostsLoading] = useState(false);
+  const [pinnedPostId, setPinnedPostId] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoaded, setProductsLoaded] = useState(false);
   const [productsLoading, setProductsLoading] = useState(false);
@@ -351,6 +352,18 @@ export default function ProfilePage() {
     // reset input so same file can be re-picked
     e.target.value = '';
     setCropFile(file);
+  };
+
+  const handlePinPost = async (postId: string) => {
+    const wasPinned = pinnedPostId === postId;
+    setPinnedPostId(wasPinned ? null : postId);
+    try {
+      await feedApi.pinPost(postId);
+      toast.success(wasPinned ? 'Post unpinned from profile' : 'Post pinned to your profile');
+    } catch {
+      setPinnedPostId(wasPinned ? postId : null);
+      toast.error('Could not update pin');
+    }
   };
 
   const cancelEdit = () => {
@@ -776,40 +789,58 @@ export default function ProfilePage() {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
-                {posts.map((post, i) => (
-                  <div key={post.id ?? i} className="card overflow-hidden hover:shadow-md transition-shadow">
-                    {post.mediaUrls?.[0] ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={post.mediaUrls[0]}
-                        alt=""
-                        className="w-full h-32 object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-32 bg-[var(--primary-light)] flex items-center justify-center">
-                        <FileText size={24} className="text-[var(--primary)] opacity-40" />
-                      </div>
-                    )}
-                    <div className="p-3">
-                      {post.category?.name && (
-                        <span className="badge badge-primary text-[10px] mb-1.5">
-                          {post.category.name}
-                        </span>
+                {[...posts].sort((a, b) =>
+                  a.id === pinnedPostId ? -1 : b.id === pinnedPostId ? 1 : 0
+                ).map((post, i) => {
+                  const isPinned = pinnedPostId === post.id;
+                  return (
+                    <div key={post.id ?? i} style={{ position: 'relative' }} className="card overflow-hidden hover:shadow-md transition-shadow">
+                      {isPinned && (
+                        <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, display: 'flex', alignItems: 'center', gap: 3, background: 'rgba(240,123,29,0.9)', color: 'white', padding: '2px 7px', borderRadius: 6, fontSize: 10, fontWeight: 700 }}>
+                          <Pin size={9} />
+                          Pinned
+                        </div>
                       )}
-                      {post.content && (
-                        <p className="text-xs text-[var(--text)] line-clamp-2 leading-relaxed">
-                          {post.content}
+                      <button
+                        onClick={() => handlePinPost(post.id)}
+                        title={isPinned ? 'Unpin from profile' : 'Pin to top of profile'}
+                        style={{ position: 'absolute', top: 6, right: 6, zIndex: 2, width: 28, height: 28, borderRadius: '50%', border: 'none', background: isPinned ? 'rgba(240,123,29,0.9)' : 'rgba(0,0,0,0.45)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                      >
+                        {isPinned ? <PinOff size={13} /> : <Pin size={13} />}
+                      </button>
+                      {post.mediaUrls?.[0] ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={post.mediaUrls[0]}
+                          alt=""
+                          className="w-full h-32 object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-32 bg-[var(--primary-light)] flex items-center justify-center">
+                          <FileText size={24} className="text-[var(--primary)] opacity-40" />
+                        </div>
+                      )}
+                      <div className="p-3">
+                        {post.category?.name && (
+                          <span className="badge badge-primary text-[10px] mb-1.5">
+                            {post.category.name}
+                          </span>
+                        )}
+                        {post.content && (
+                          <p className="text-xs text-[var(--text)] line-clamp-2 leading-relaxed">
+                            {post.content}
+                          </p>
+                        )}
+                        <p className="text-[10px] text-[var(--text-muted)] mt-1.5">
+                          {new Date(post.createdAt).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                          })}
                         </p>
-                      )}
-                      <p className="text-[10px] text-[var(--text-muted)] mt-1.5">
-                        {new Date(post.createdAt).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                        })}
-                      </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

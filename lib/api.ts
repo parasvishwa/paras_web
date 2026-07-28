@@ -62,6 +62,7 @@ export const feedApi = {
   addComment: (postId: string, comment: string) =>
     apiV1.post(`/posts/${postId}/comment`, { comment }),
   sharePost: (postId: string) => apiV1.post('/post-share-counts/post', { postId }),
+  pinPost: (postId: string) => apiV1.patch(`/posts/${postId}/pin`, {}),
 };
 
 // ── Explore (Gaushalas / Vendors / Experts) ──────────────────────────────────
