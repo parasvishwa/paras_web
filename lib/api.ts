@@ -61,6 +61,7 @@ export const feedApi = {
   likePost: (postId: string) => apiV1.post(`/posts/${postId}/like`),
   addComment: (postId: string, comment: string) =>
     apiV1.post(`/posts/${postId}/comment`, { comment }),
+  sharePost: (postId: string) => apiV1.post('/post-share-counts/post', { postId }),
 };
 
 // ── Explore (Gaushalas / Vendors / Experts) ──────────────────────────────────

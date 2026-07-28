@@ -13,7 +13,7 @@ const UAT_ONLY: string[] = [];
 const ALLOWED_PATH_PREFIXES = [
   '/auth/', '/user/', '/posts', '/explore/', '/products', '/rescue',
   '/reviews', '/notifications', '/orders', '/master-data/', '/expert-banners/',
-  '/events',
+  '/events', '/post-share-counts', '/gaushala-claims',
 ];
 
 const ALLOWED_ORIGINS = [

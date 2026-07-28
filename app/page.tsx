@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { Heart, MessageCircle, X, Plus, User, Leaf, Flame, Share2, UserPlus, Calendar, MapPin, Users, Ticket } from 'lucide-react';
 import { feedApi, rescueApi } from '@/lib/api';
+import toast from 'react-hot-toast';
 import { isLoggedIn } from '@/lib/auth';
 import { AppGateModal } from '@/components/AppGate';
 
@@ -537,13 +538,18 @@ function EventCard({ post, onInteract }: { post: Post; onInteract?: () => void }
 
 /* ─── Post Card ──────────────────────────────────────────────────────────── */
 
-function PostCard({ post, onInteract }: { post: Post; onInteract?: () => void }) {
+function PostCard({ post, isLiked, likeCount, onLike, onInteract }: {
+  post: Post;
+  isLiked: boolean;
+  likeCount: number;
+  onLike: () => void;
+  onInteract?: () => void;
+}) {
   const author = post.User ?? post.user;
   const role = author ? getRoleLabel(author.role) : '';
   const initials = author ? getInitials(author.fullname) : 'G';
   const text = post.content ?? post.caption ?? '';
   const imgs: string[] = post.imageUrls ?? post.images ?? (post.imageUrl ? [post.imageUrl] : []);
-  const likes = post.likeCount ?? post._count?.likes ?? post.likesCount ?? 0;
   const comments = post.commentCount ?? post._count?.comments ?? post.commentsCount ?? 0;
   const shares = post.shareCount ?? post._count?.shares ?? 0;
   const link = detectLink(text);
@@ -552,10 +558,12 @@ function PostCard({ post, onInteract }: { post: Post; onInteract?: () => void })
     const url = `${window.location.origin}/post/${post.id}`;
     const shareText = text.slice(0, 120) || 'Check this out on Gaubook';
     if (navigator.share) {
-      navigator.share({ title: 'Gaubook', text: shareText, url }).catch(() => {});
+      await navigator.share({ title: 'Gaubook', text: shareText, url }).catch(() => {});
     } else {
       await navigator.clipboard.writeText(url).catch(() => {});
+      toast.success('Link copied!');
     }
+    feedApi.sharePost(post.id).catch(() => {});
   };
   const showText = text && !isOnlyUrl(text);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
@@ -646,13 +654,16 @@ function PostCard({ post, onInteract }: { post: Post; onInteract?: () => void })
 
       {/* Reaction row */}
       <div className="px-4 py-3" style={{ borderTop: '1px solid var(--border)', display: 'flex', gap: 14, alignItems: 'center' }}>
-        <button onClick={onInteract} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 8 }}>
-          <Heart size={16} strokeWidth={1.8} />
-          <span style={{ fontWeight: 600 }}>{likes}</span>
+        <button
+          onClick={onLike}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: isLiked ? '#E53935' : 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 8, transition: 'color 0.15s' }}
+        >
+          <Heart size={16} strokeWidth={1.8} fill={isLiked ? '#E53935' : 'none'} />
+          <span style={{ fontWeight: 600 }}>{likeCount > 0 ? likeCount : ''}</span>
         </button>
         <button onClick={onInteract} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 8 }}>
           <MessageCircle size={16} strokeWidth={1.8} />
-          <span style={{ fontWeight: 600 }}>{comments}</span>
+          <span style={{ fontWeight: 600 }}>{comments > 0 ? comments : ''}</span>
         </button>
         <button onClick={handleShare} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 8 }}>
           <Share2 size={16} strokeWidth={1.8} />
@@ -677,9 +688,24 @@ export default function HomePage() {
   const [hasMore, setHasMore]           = useState(true);
   const [loggedIn, setLoggedIn]         = useState(false);
   const [latestRescue, setLatestRescue] = useState<RescueAlert | null>(null);
+  const [likedPosts, setLikedPosts]     = useState<Set<string>>(new Set());
+  const [likeCounts, setLikeCounts]     = useState<Record<string, number>>({});
   const loaderRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setLoggedIn(isLoggedIn()); }, []);
+
+  const handleLike = useCallback(async (postId: string, baseCount: number) => {
+    if (!loggedIn) { setAppGate(true); return; }
+    const wasLiked = likedPosts.has(postId);
+    setLikedPosts(prev => { const n = new Set(prev); wasLiked ? n.delete(postId) : n.add(postId); return n; });
+    setLikeCounts(prev => ({ ...prev, [postId]: Math.max(0, (prev[postId] ?? baseCount) + (wasLiked ? -1 : 1)) }));
+    try {
+      await feedApi.likePost(postId);
+    } catch {
+      setLikedPosts(prev => { const n = new Set(prev); wasLiked ? n.add(postId) : n.delete(postId); return n; });
+      setLikeCounts(prev => ({ ...prev, [postId]: Math.max(0, (prev[postId] ?? baseCount) + (wasLiked ? 1 : -1)) }));
+    }
+  }, [loggedIn, likedPosts]);
 
   useEffect(() => {
     rescueApi.getAll({ page: 1, limit: 1 }).then((res) => {
@@ -823,7 +849,17 @@ export default function HomePage() {
               if (post.postType === 'Event') {
                 return <EventCard key={post.id ?? i} post={post} onInteract={() => setAppGate(true)} />;
               }
-              return <PostCard key={post.id ?? i} post={post} onInteract={() => setAppGate(true)} />;
+              const baseCount = post.likeCount ?? post._count?.likes ?? post.likesCount ?? 0;
+              return (
+                <PostCard
+                  key={post.id ?? i}
+                  post={post}
+                  isLiked={likedPosts.has(post.id)}
+                  likeCount={likeCounts[post.id] ?? baseCount}
+                  onLike={() => handleLike(post.id, baseCount)}
+                  onInteract={() => setAppGate(true)}
+                />
+              );
             })}
           </div>
         )}
