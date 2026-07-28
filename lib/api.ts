@@ -112,6 +112,7 @@ export const rescueApi = {
   create: (data: FormData) => apiV1.post('/rescue', data),
   updateStatus: (id: string, status: string) =>
     apiV1.patch(`/rescue/${id}`, { status }),
+  deleteReport: (id: string) => apiV1.delete(`/rescue/${id}`),
 };
 
 // ── Orders ────────────────────────────────────────────────────────────────────

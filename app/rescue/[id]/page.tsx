@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Siren, MapPin, Clock, Users, ArrowLeft, ExternalLink, User } from 'lucide-react';
+import { Siren, MapPin, Clock, Users, ArrowLeft, ExternalLink, User, Trash2 } from 'lucide-react';
 import { rescueApi } from '@/lib/api';
 import { AppGateModal } from '@/components/AppGate';
+import { getStoredUser } from '@/lib/auth';
 
 
 interface RescueDetail {
@@ -33,6 +34,8 @@ interface RescueDetail {
   contact?: string;
   reporter?: { fullname: string; profilePhoto?: string };
   User?: { fullname: string; profilePhoto?: string };
+  reporterId?: string;
+  userId?: string;
 }
 
 const TYPE_CONFIG: Record<string, { label: string; bg: string; color: string; emoji: string }> = {
@@ -73,6 +76,8 @@ export default function RescueDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [appGate, setAppGate] = useState(false);
   const [activePhoto, setActivePhoto] = useState(0);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -94,6 +99,19 @@ export default function RescueDetailPage() {
       setLoading(false);
     })();
   }, [id]);
+
+  const currentUserId = getStoredUser()?.id;
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await rescueApi.deleteReport(id!);
+      router.replace('/rescue');
+    } catch {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  };
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: 'var(--canvas)' }}>
@@ -118,6 +136,7 @@ export default function RescueDetailPage() {
   );
 
   const r = rescue!;
+  const isOwner = currentUserId != null && (currentUserId === r.reporterId || currentUserId === r.userId);
   const typeConf = TYPE_CONFIG[r.type] || TYPE_CONFIG.other;
   const statusConf = STATUS_CONFIG[r.status] || STATUS_CONFIG.active;
   const locationStr = r.address || [r.city, r.district, r.state].filter(Boolean).join(', ');
@@ -134,6 +153,45 @@ export default function RescueDetailPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--canvas)' }}>
       {appGate && <AppGateModal feature="Rescue Response" onClose={() => setAppGate(false)} />}
+
+      {/* ── Delete confirm dialog ── */}
+      {confirmDelete && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 200,
+          background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+        }}>
+          <div style={{
+            background: 'var(--surface)', borderRadius: 20, padding: 28,
+            maxWidth: 340, width: '100%',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+          }}>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <Trash2 size={22} color="#DC2626" />
+            </div>
+            <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>Delete Rescue Alert?</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 24 }}>
+              This will permanently remove the rescue report. This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
+                style={{ flex: 1, padding: '11px', borderRadius: 10, border: '1.5px solid var(--border)', background: 'transparent', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: 'var(--text)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                style={{ flex: 1, padding: '11px', borderRadius: 10, border: 'none', background: '#DC2626', color: 'white', fontSize: 14, fontWeight: 700, cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.7 : 1 }}
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Hero photo ─────────────────────────────────────────────────────── */}
       <div style={{ position: 'relative', height: 300, background: '#1a0000', overflow: 'hidden' }}>
@@ -166,6 +224,22 @@ export default function RescueDetailPage() {
         >
           <ArrowLeft size={18} color="white" />
         </button>
+
+        {/* Delete button — only for the reporter */}
+        {isOwner && (
+          <button
+            onClick={() => setConfirmDelete(true)}
+            style={{
+              position: 'absolute', top: 16, right: 16,
+              width: 36, height: 36, borderRadius: '50%',
+              background: 'rgba(220,38,38,0.7)', border: '1px solid rgba(255,255,255,0.25)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', backdropFilter: 'blur(8px)',
+            }}
+          >
+            <Trash2 size={16} color="white" />
+          </button>
+        )}
 
         {/* Status badge */}
         <div style={{ position: 'absolute', bottom: 16, left: 16 }}>
