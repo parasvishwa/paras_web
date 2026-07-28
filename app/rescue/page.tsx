@@ -281,6 +281,7 @@ export default function RescuePage() {
   const [page, setPage]           = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading]     = useState(true);
+  const [fetchFailed, setFetchFailed] = useState(false);
   const [appGate, setAppGate]     = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const pageRef = useRef<HTMLDivElement>(null);
@@ -296,6 +297,7 @@ export default function RescuePage() {
 
   const fetchCases = useCallback(async () => {
     setLoading(true);
+    setFetchFailed(false);
     try {
       const res = await rescueApi.getAll({ page, limit: 10, ...(statusFilter ? { status: statusFilter } : {}) });
       const d     = res.data;
@@ -304,6 +306,7 @@ export default function RescuePage() {
       setTotalPages(inner?.totalPages ?? d?.totalPages ?? (inner?.total ? Math.ceil(inner.total / 10) : 1));
     } catch {
       setCases([]);
+      setFetchFailed(true);
     }
     setLoading(false);
   }, [page, statusFilter]);
@@ -402,13 +405,24 @@ export default function RescuePage() {
             <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'var(--primary-light)', border: '2px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
               <AlertCircle size={38} color="var(--primary)" strokeWidth={1.5} />
             </div>
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>All cows are safe!</h3>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 240, marginBottom: 20 }}>
-              No active rescue cases right now. If you spot a cow in distress, report it immediately.
-            </p>
-            <button onClick={() => setAppGate(true)} className="btn-primary" style={{ borderRadius: 100, padding: '11px 24px', fontSize: 14 }}>
-              Report a Case
-            </button>
+            {fetchFailed ? (
+              <>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>Rescue — Coming Soon</h3>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 260 }}>
+                  The Rescue feature is launching soon on web. Use the Gaubook app to report and track rescue cases right now.
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>All cows are safe!</h3>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 240, marginBottom: 20 }}>
+                  No active rescue cases right now. If you spot a cow in distress, report it immediately.
+                </p>
+                <button onClick={() => setAppGate(true)} className="btn-primary" style={{ borderRadius: 100, padding: '11px 24px', fontSize: 14 }}>
+                  Report a Case
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <div style={{ paddingTop: 4 }}>

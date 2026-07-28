@@ -7,7 +7,7 @@ const PROD_V2 = 'https://app.gaubook.org/api/v2';
 const LOCAL_V1 = 'http://localhost:5001/v1';
 
 // These endpoints exist on UAT but not yet deployed to prod
-const UAT_ONLY = ['/rescue'];
+const UAT_ONLY: string[] = [];
 
 // Only proxy these path prefixes — anything else returns 404
 const ALLOWED_PATH_PREFIXES = [
