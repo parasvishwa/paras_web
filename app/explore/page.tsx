@@ -381,19 +381,21 @@ export default function ExplorePage() {
     <div style={{ background: 'var(--canvas)', minHeight: '100vh', paddingBottom: 80 }}>
 
       {/* ── Role chips — draggable horizontal scroll ── */}
-      <div
-        ref={chipScrollRef}
-        className="scrollbar-hide"
-        onMouseDown={onChipMouseDown}
-        onMouseMove={onChipMouseMove}
-        onMouseUp={onChipMouseUp}
-        onMouseLeave={onChipMouseUp}
-        style={{
-          overflowX: 'auto', display: 'flex', gap: 8,
-          padding: '14px 16px 2px',
-          cursor: 'grab', userSelect: 'none',
-        }}
-      >
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '14px 0 2px' }}>
+        <div
+          ref={chipScrollRef}
+          className="scrollbar-hide"
+          onMouseDown={onChipMouseDown}
+          onMouseMove={onChipMouseMove}
+          onMouseUp={onChipMouseUp}
+          onMouseLeave={onChipMouseUp}
+          style={{
+            overflowX: 'auto', display: 'flex', gap: 8,
+            padding: '0 16px',
+            cursor: 'grab', userSelect: 'none',
+            maxWidth: '100%',
+          }}
+        >
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
           {(Object.keys(ROLE_CONFIG) as RoleTab[]).map((role) => {
             const cfg = ROLE_CONFIG[role];
@@ -415,6 +417,7 @@ export default function ExplorePage() {
               </button>
             );
           })}
+        </div>
         </div>
       </div>
 
