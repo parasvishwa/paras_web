@@ -1,13 +1,14 @@
-'use client';
+import type { Metadata } from 'next';
+import { generateProfileMetadata } from '@/lib/profile-metadata';
+import ProfileDetailClientPage from '@/app/gaushala/[id]/_client';
 
-import { useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+type Props = { params: Promise<{ id: string }> };
 
-export default function VendorRedirect() {
-  const params = useParams();
-  const router = useRouter();
-  useEffect(() => {
-    if (params.id) router.replace(`/gaushala/${params.id}`);
-  }, [params.id, router]);
-  return null;
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  return generateProfileMetadata(id);
+}
+
+export default async function VendorPage() {
+  return <ProfileDetailClientPage />;
 }

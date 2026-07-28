@@ -1,14 +1,14 @@
 import type { Metadata } from 'next';
-import { generateProfileMetadata } from '@/lib/profile-metadata';
-import ProfileDetailClientPage from './_client';
+import { generateUserMetadata } from '@/lib/profile-metadata';
+import ProfileDetailClientPage from '@/app/gaushala/[id]/_client';
 
 type Props = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  return generateProfileMetadata(id);
+  return generateUserMetadata(id);
 }
 
-export default async function GaushalaPage() {
+export default async function PublicProfilePage() {
   return <ProfileDetailClientPage />;
 }

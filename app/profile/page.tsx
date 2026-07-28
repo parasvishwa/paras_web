@@ -7,7 +7,7 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import {
   Camera, Edit2, MapPin, Package, FileText, ShoppingCart,
-  LogOut, User, Save, X, Pin, PinOff,
+  LogOut, User, Save, X, Pin, PinOff, Heart, Share2, Eye,
 } from 'lucide-react';
 import { profileApi, feedApi, marketApi, ordersApi, authApi } from '@/lib/api';
 import { isLoggedIn, getStoredUser, clearAuth, type GbUser } from '@/lib/auth';
@@ -34,6 +34,7 @@ interface ProfileData {
   followersCount?: number;
   followingCount?: number;
   postsCount?: number;
+  pinnedPostId?: string | null;
 }
 
 interface Post {
@@ -42,7 +43,11 @@ interface Post {
   content?: string;
   mediaUrls?: string[];
   createdAt: string;
+  likeCount?: number;
   likesCount?: number;
+  isLiked?: boolean;
+  shareCount?: number;
+  viewCount?: number;
   commentsCount?: number;
   category?: { name: string };
 }
@@ -255,6 +260,8 @@ export default function ProfilePage() {
   const [postsLoaded, setPostsLoaded] = useState(false);
   const [postsLoading, setPostsLoading] = useState(false);
   const [pinnedPostId, setPinnedPostId] = useState<string | null>(null);
+  const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoaded, setProductsLoaded] = useState(false);
   const [productsLoading, setProductsLoading] = useState(false);
@@ -281,6 +288,7 @@ export default function ProfilePage() {
           ? { ...userObj, ...profileObj }
           : (body?.data ?? body?.user ?? body?.profile ?? body);
         setProfile(data);
+        if (data.pinnedPostId) setPinnedPostId(data.pinnedPostId);
         setEditForm({
           fullname: data.fullname || '',
           email: data.email || '',
@@ -308,6 +316,14 @@ export default function ProfilePage() {
           // Backend doesn't filter by userId — filter client-side
           const mine = uid ? all.filter((p) => p.userId === uid) : all;
           setPosts(mine);
+          const likedMap: Record<string, boolean> = {};
+          const countMap: Record<string, number> = {};
+          mine.forEach(p => {
+            likedMap[p.id] = p.isLiked ?? false;
+            countMap[p.id] = p.likeCount ?? p.likesCount ?? 0;
+          });
+          setLikedPosts(likedMap);
+          setLikeCounts(countMap);
           setPostsLoaded(true);
         })
         .catch(() => toast.error('Failed to load posts'))
@@ -363,6 +379,32 @@ export default function ProfilePage() {
     } catch {
       setPinnedPostId(wasPinned ? postId : null);
       toast.error('Could not update pin');
+    }
+  };
+
+  const handleLikePost = async (postId: string) => {
+    const wasLiked = likedPosts[postId] ?? false;
+    setLikedPosts(prev => ({ ...prev, [postId]: !wasLiked }));
+    setLikeCounts(prev => ({ ...prev, [postId]: (prev[postId] ?? 0) + (wasLiked ? -1 : 1) }));
+    try {
+      await feedApi.likePost(postId);
+    } catch {
+      setLikedPosts(prev => ({ ...prev, [postId]: wasLiked }));
+      setLikeCounts(prev => ({ ...prev, [postId]: (prev[postId] ?? 0) + (wasLiked ? 1 : -1) }));
+    }
+  };
+
+  const handleSharePost = async (postId: string, content?: string) => {
+    try {
+      await feedApi.sharePost(postId);
+      if (navigator.share) {
+        await navigator.share({ title: 'Gaubook Post', text: content ?? '', url: window.location.href });
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success('Link copied!');
+      }
+    } catch {
+      // share cancelled or failed silently
     }
   };
 
@@ -468,6 +510,7 @@ export default function ProfilePage() {
 
   const roles = getRoles(profile);
   const isVendor = roles.includes('Vendor');
+  const isGaushala = roles.includes('Gaushala');
   const hasBusinessProfile = roles.some((r) => ['Gaushala', 'Vendor', 'NGO'].includes(r));
   const photoSrc = photoPreview || profile.profilePhoto;
 
@@ -837,6 +880,30 @@ export default function ProfilePage() {
                             month: 'short',
                           })}
                         </p>
+                        {/* Like / Share / View row */}
+                        <div className="flex items-center gap-3 mt-2 pt-2 border-t border-[var(--border)]">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleLikePost(post.id); }}
+                            className="flex items-center gap-1 text-[10px] font-semibold transition-colors"
+                            style={{ color: likedPosts[post.id] ? '#ef4444' : 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                          >
+                            <Heart size={12} fill={likedPosts[post.id] ? '#ef4444' : 'none'} />
+                            {(likeCounts[post.id] ?? 0) > 0 && <span>{likeCounts[post.id]}</span>}
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleSharePost(post.id, post.content); }}
+                            className="flex items-center gap-1 text-[10px] font-semibold text-[var(--text-muted)] transition-colors hover:text-[var(--primary)]"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                          >
+                            <Share2 size={12} />
+                            {(post.shareCount ?? 0) > 0 && <span>{post.shareCount}</span>}
+                          </button>
+                          {(post.viewCount ?? 0) > 0 && (
+                            <span className="flex items-center gap-1 text-[10px] text-[var(--text-muted)] ml-auto">
+                              <Eye size={11} />{post.viewCount}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -977,6 +1044,24 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+
+      {/* ── Gaushala registration CTA ──────────────────────────────────────────── */}
+      {isGaushala && (
+        <div className="mt-8 card p-4" style={{ border: '1.5px solid rgba(240,123,29,0.25)', background: 'rgba(240,123,29,0.04)' }}>
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center" style={{ background: 'rgba(240,123,29,0.12)' }}>
+              <FileText size={17} className="text-[var(--primary)]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-[var(--text)]">Gaushala Registration</p>
+              <p className="text-xs text-[var(--text-muted)] mt-0.5">Complete your gaushala profile and upload official documents (Darpan, 80G, registration forms)</p>
+            </div>
+          </div>
+          <Link href="/gaushala/register" className="btn-primary mt-3 py-2.5 text-sm w-full justify-center block text-center">
+            Register / Update Gaushala
+          </Link>
+        </div>
+      )}
 
       {/* ── Logout ───────────────────────────────────────────────────────────────── */}
       <div className="mt-12 flex justify-center">
