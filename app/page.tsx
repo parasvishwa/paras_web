@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { Heart, MessageCircle, X, Plus, User, Leaf, Flame, AlertTriangle, Share2, UserPlus } from 'lucide-react';
+import { Heart, MessageCircle, X, Plus, User, Leaf, Flame, Share2, UserPlus, Calendar, MapPin, Users, Ticket } from 'lucide-react';
 import { feedApi, rescueApi } from '@/lib/api';
 import { isLoggedIn } from '@/lib/auth';
 import { AppGateModal } from '@/components/AppGate';
@@ -20,11 +20,13 @@ interface Post {
   id: string;
   content?: string;
   caption?: string;
+  title?: string;
   type?: string;
   postType?: string;
   images?: string[];
   imageUrls?: string[];
   imageUrl?: string;
+  coverImage?: string;
   createdAt: string;
   User?: { fullname: string; profilePhoto?: string; role: string | string[] };
   user?: { fullname: string; profilePhoto?: string; role: string | string[] };
@@ -34,6 +36,18 @@ interface Post {
   _count?: { likes: number; comments: number; shares?: number };
   likesCount?: number;
   commentsCount?: number;
+  // Event-specific fields (when postType === 'Event')
+  eventType?: string;
+  startDate?: string;
+  endDate?: string;
+  location?: string;
+  city?: string;
+  state?: string;
+  attendeesCount?: number;
+  maxAttendees?: number;
+  entryFee?: string;
+  entryAmount?: number;
+  isAttending?: boolean;
 }
 
 interface RescueAlert {
@@ -417,6 +431,110 @@ function LinkPreview({ link }: { link: { type: 'youtube' | 'instagram' | 'facebo
   return null;
 }
 
+/* ─── Event Card ─────────────────────────────────────────────────────────── */
+
+const EVENT_TYPE_META: Record<string, { emoji: string; label: string; color: string }> = {
+  SevaCamp:        { emoji: '🙏', label: 'Seva Camp',        color: '#F07B1D' },
+  CowFair:         { emoji: '🐄', label: 'Cow Fair',         color: '#7B4A1E' },
+  GaushalaVisit:   { emoji: '🏡', label: 'Gaushala Visit',   color: '#2E7D32' },
+  Training:        { emoji: '📚', label: 'Training',         color: '#1565C0' },
+  CulturalProgram: { emoji: '🎶', label: 'Cultural Program', color: '#6A1B9A' },
+  Other:           { emoji: '📅', label: 'Event',            color: '#455A64' },
+};
+
+function formatEventDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }) +
+    '  ·  ' + d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function EventCard({ post, onInteract }: { post: Post; onInteract?: () => void }) {
+  const meta = EVENT_TYPE_META[post.eventType ?? ''] ?? EVENT_TYPE_META.Other;
+  const color = meta.color;
+  const now = Date.now();
+  const start = post.startDate ? new Date(post.startDate).getTime() : 0;
+  const end   = post.endDate   ? new Date(post.endDate).getTime()   : 0;
+  const isLive     = start <= now && (end ? end >= now : start > now - 3 * 3600 * 1000);
+  const isUpcoming = start > now;
+  const statusLabel = isLive ? '● Live' : isUpcoming ? 'Upcoming' : 'Past';
+  const statusColor = isLive ? '#2E7D32' : isUpcoming ? color : '#677294';
+
+  const locationParts = [post.location, post.city, post.state].filter(Boolean);
+  const locationStr = locationParts.length ? locationParts[0]! + (locationParts[1] ? `, ${locationParts[1]}` : '') : '';
+
+  return (
+    <Link href={`/events/${post.id}`} style={{ textDecoration: 'none', display: 'block' }}>
+      <div className="card card-hover" style={{ borderColor: `${color}2E`, overflow: 'hidden' }}>
+        {/* Banner */}
+        <div style={{ height: 150, position: 'relative', overflow: 'hidden' }}>
+          {post.coverImage ? (
+            <img src={resolveImg(post.coverImage)} alt={post.title ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${color}E6, ${color}88)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: 52 }}>{meta.emoji}</span>
+            </div>
+          )}
+          {/* Scrim */}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.45))' }} />
+          {/* Type badge */}
+          <div style={{ position: 'absolute', top: 10, left: 10, background: color, borderRadius: 99, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ fontSize: 11 }}>{meta.emoji}</span>
+            <span style={{ color: 'white', fontSize: 10, fontWeight: 700 }}>{meta.label}</span>
+          </div>
+          {/* Status chip */}
+          <div style={{ position: 'absolute', top: 10, right: 10, background: statusColor, borderRadius: 99, padding: '3px 9px' }}>
+            <span style={{ color: 'white', fontSize: 9, fontWeight: 700 }}>{statusLabel}</span>
+          </div>
+        </div>
+
+        <div style={{ padding: '12px 14px' }}>
+          {/* Title */}
+          <p style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', lineHeight: 1.25, marginBottom: 8, letterSpacing: '-0.2px' }}>
+            {post.title ?? post.caption ?? 'Event'}
+          </p>
+
+          {/* Date */}
+          {post.startDate && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+              <Calendar size={13} color={color} strokeWidth={2} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: color }}>{formatEventDate(post.startDate)}</span>
+            </div>
+          )}
+
+          {/* Location */}
+          {locationStr && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <MapPin size={13} color="var(--text-muted)" strokeWidth={2} />
+              <span style={{ fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{locationStr}</span>
+            </div>
+          )}
+
+          {/* Footer row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
+            <Users size={13} color="var(--text-muted)" strokeWidth={2} />
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', flex: 1 }}>{post.attendeesCount ?? 0} attending</span>
+            {/* Entry badge */}
+            {post.entryFee === 'Paid' ? (
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#E65100', background: '#FFF3E0', border: '1px solid #FFB74D', borderRadius: 99, padding: '2px 8px' }}>
+                {post.entryAmount ? `₹${Math.round(post.entryAmount)}` : 'Paid'}
+              </span>
+            ) : (
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#2E7D32', background: '#E8F5E9', border: '1px solid #81C784', borderRadius: 99, padding: '2px 8px' }}>Free</span>
+            )}
+            {/* RSVP button */}
+            <button
+              onClick={(e) => { e.preventDefault(); onInteract?.(); }}
+              style={{ fontSize: 12, fontWeight: 700, color: 'white', background: color, border: 'none', borderRadius: 99, padding: '6px 14px', cursor: 'pointer' }}
+            >
+              RSVP
+            </button>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 /* ─── Post Card ──────────────────────────────────────────────────────────── */
 
 function PostCard({ post, onInteract }: { post: Post; onInteract?: () => void }) {
@@ -574,7 +692,7 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    setStories(posts.filter((p) => p.postType?.toLowerCase() === 'story'));
+    setStories(posts.filter((p) => p.postType?.toLowerCase() === 'story' || p.type?.toLowerCase() === 'story'));
   }, [posts]);
 
   const fetchPosts = useCallback(async (pg: number, replace: boolean) => {
@@ -597,6 +715,7 @@ export default function HomePage() {
 
   const filteredPosts = activeFilter
     ? posts.filter((p) => {
+        if (p.postType === 'Event') return true; // always show events
         const role = p.User?.role ?? p.user?.role ?? '';
         const r = Array.isArray(role) ? role[0] : role;
         return r?.toLowerCase() === activeFilter.toLowerCase();
@@ -700,9 +819,12 @@ export default function HomePage() {
         {/* Posts — gap 8px (Flutter: vertical: 8 margin) */}
         {!loading && filteredPosts.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {filteredPosts.map((post, i) => (
-              <PostCard key={post.id ?? i} post={post} onInteract={() => setAppGate(true)} />
-            ))}
+            {filteredPosts.map((post, i) => {
+              if (post.postType === 'Event') {
+                return <EventCard key={post.id ?? i} post={post} onInteract={() => setAppGate(true)} />;
+              }
+              return <PostCard key={post.id ?? i} post={post} onInteract={() => setAppGate(true)} />;
+            })}
           </div>
         )}
 

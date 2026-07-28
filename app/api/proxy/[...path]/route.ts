@@ -13,6 +13,7 @@ const UAT_ONLY: string[] = [];
 const ALLOWED_PATH_PREFIXES = [
   '/auth/', '/user/', '/posts', '/explore/', '/products', '/rescue',
   '/reviews', '/notifications', '/orders', '/master-data/', '/expert-banners/',
+  '/events',
 ];
 
 const ALLOWED_ORIGINS = [
@@ -71,7 +72,7 @@ async function proxy(req: NextRequest, params: { path: string[] }, method: strin
     'page', 'limit', 'status', 'type', 'role', 'search', 'state', 'district',
     'badge', 'lat', 'lng', 'radius', 'userId', 'vendorId', 'requestedRoleChange',
     'category', 'categoryId', 'subcategory', 'subcategoryId',
-    'sortBy', 'sortOrder',
+    'sortBy', 'sortOrder', 'upcoming',
   ]);
   req.nextUrl.searchParams.forEach((v, k) => {
     if (ALLOWED_QUERY_PARAMS.has(k)) url.searchParams.set(k, v);

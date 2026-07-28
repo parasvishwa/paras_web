@@ -128,3 +128,11 @@ export const notifApi = {
   markRead: (ids: string[]) => apiV1.post('/notifications/mark-as-read', { ids }),
   getUnreadCount: () => apiV1.get('/notifications/unread-count'),
 };
+
+// ── Events ────────────────────────────────────────────────────────────────────
+export const eventsApi = {
+  getAll: (params: Record<string, unknown> = {}) =>
+    apiV1.get('/events', { params: { page: 1, limit: 10, ...params } }),
+  getById: (id: string) => apiV1.get(`/events/${id}`),
+  toggleAttend: (id: string) => apiV1.post(`/events/${id}/attend`, {}),
+};
