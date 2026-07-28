@@ -9,12 +9,11 @@ import {
 } from 'lucide-react';
 import { clearAuth, getStoredUser, isLoggedIn, type GbUser } from '@/lib/auth';
 
-const NAV = [
+const BASE_NAV = [
   { href: '/', icon: Home, label: 'Home' },
   { href: '/explore', icon: Compass, label: 'Explore' },
   { href: '/market', icon: ShoppingBag, label: 'Market' },
   { href: '/expert', icon: UserCheck, label: 'Expert' },
-  { href: '/rescue', icon: Cross, label: 'Rescue' },
 ];
 
 export default function Navbar() {
@@ -25,12 +24,27 @@ export default function Navbar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [appBanner, setAppBanner] = useState(false);
+  const [showRescue, setShowRescue] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const NAV = showRescue
+    ? [...BASE_NAV, { href: '/rescue', icon: Cross, label: 'Rescue' }]
+    : BASE_NAV;
 
   useEffect(() => {
     setUser(getStoredUser());
     setLoggedIn(isLoggedIn());
   }, [pathname]);
+
+  useEffect(() => {
+    fetch('/api/proxy/rescue?page=1&limit=1')
+      .then((r) => r.json())
+      .then((json) => {
+        const items = json?.data ?? json?.posts ?? json?.items ?? [];
+        if (Array.isArray(items) && items.length > 0) setShowRescue(true);
+      })
+      .catch(() => {});
+  }, []);
 
   // Show app banner on mobile devices
   useEffect(() => {
