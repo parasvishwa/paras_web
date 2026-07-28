@@ -1,8 +1,15 @@
 import type { Metadata } from 'next';
+import { Poppins } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/layout/Navbar';
 import SplashScreen from '@/components/SplashScreen';
 import { Toaster } from 'react-hot-toast';
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: "Gaubook — India's Largest Gau Community",
@@ -17,7 +24,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>
+      <body className={poppins.className} suppressHydrationWarning>
         <SplashScreen />
         <Navbar />
         <main className="min-h-screen">{children}</main>
@@ -26,8 +33,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           toastOptions={{
             style: {
               background: '#fff',
-              color: '#2D1B0E',
-              border: '1px solid #E8DDD0',
+              color: '#000',
+              border: '1px solid #EFE7DC',
               borderRadius: '12px',
               fontWeight: 500,
             },

@@ -8,14 +8,27 @@ export interface GbUser {
   businessName?: string;
 }
 
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
+
+function setCookie(token: string) {
+  const secure = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `gb_token=${token}; Path=/; Max-Age=${COOKIE_MAX_AGE}; SameSite=Lax${secure}`;
+}
+
+function clearCookie() {
+  document.cookie = 'gb_token=; Path=/; Max-Age=0; SameSite=Lax';
+}
+
 export function saveAuth(token: string, user: GbUser) {
   localStorage.setItem('gb_token', token);
   localStorage.setItem('gb_user', JSON.stringify(user));
+  setCookie(token);
 }
 
 export function clearAuth() {
   localStorage.removeItem('gb_token');
   localStorage.removeItem('gb_user');
+  clearCookie();
 }
 
 export function getStoredUser(): GbUser | null {
@@ -31,7 +44,18 @@ export function getToken(): string | null {
 }
 
 export function isLoggedIn(): boolean {
-  return !!getToken();
+  const token = getToken();
+  if (!token) return false;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      clearAuth();
+      return false;
+    }
+  } catch {
+    // not a standard JWT shape — trust it
+  }
+  return true;
 }
 
 export const ROLES = [

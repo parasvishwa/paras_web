@@ -2,11 +2,38 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { marketApi, feedApi } from '@/lib/api';
+import { marketApi } from '@/lib/api';
 import {
-  ShoppingBag, Search, ChevronLeft, ChevronRight,
-  MessageCircle, Package, X, Layers, Heart, Flame,
+  Search, ChevronLeft, ChevronRight,
+  Package, X, Store, Plus, SlidersHorizontal, MapPin, Navigation,
+  LayoutGrid, Flame, Droplets, Leaf, Sparkles, Wheat,
+  Sprout, Utensils, Shirt, Wrench, Handshake, Star,
+  PawPrint, BookOpen, Layers,
 } from 'lucide-react';
+
+/* ─── Subcategory icon mapping (mirrors Flutter _getCategoryIcon) ─────────── */
+function getSubCatIcon(label: string): React.ElementType {
+  const l = label.toLowerCase();
+  if (l === 'all') return LayoutGrid;
+  // Specific product types first (before generic "panchgavya" catch-all)
+  if (l.includes('diya') || l.includes('lamp') || l.includes('samidha') || l.includes('stick') || l.includes('agarbatti') || l.includes('dhoop') || l.includes('incense') || l.includes('havan')) return Flame;
+  if (l.includes('ghee') || l.includes('ghrita') || l.includes('milk') || l.includes('dairy') || l.includes('doodh')) return Droplets;
+  if (l.includes('soap') || l.includes('sanitizer') || l.includes('wellness') || l.includes('cosm') || l.includes('beauty') || l.includes('lip') || l.includes('skin') || l.includes('lotion')) return Sparkles;
+  if (l.includes('medicine') || l.includes('ayur') || l.includes('herb') || l.includes('health')) return Leaf;
+  if (l.includes('gomaye') || l.includes('gobar') || l.includes('bhasma') || l.includes('farm') || l.includes('agri') || l.includes('organic') || l.includes('fertilizer')) return Sprout;
+  if (l.includes('akshata') || l.includes('grain') || l.includes('rice') || l.includes('samagri') || l.includes('puja') || l.includes('pooja') || l.includes('spiritual') || l.includes('devotional') || l.includes('mantra') || l.includes('ganesh')) return Star;
+  if (l.includes('food') || l.includes('grocery') || l.includes('eat') || l.includes('snack')) return Utensils;
+  if (l.includes('animal') || l.includes('feed') || l.includes('fodder') || l.includes('cow') || l.includes('pet')) return PawPrint;
+  if (l.includes('cloth') || l.includes('wear') || l.includes('apparel') || l.includes('dress')) return Shirt;
+  if (l.includes('equip') || l.includes('infra') || l.includes('tool')) return Wrench;
+  if (l.includes('serv') || l.includes('consult')) return Handshake;
+  if (l.includes('book') || l.includes('station')) return BookOpen;
+  // Generic panchgavya products → wheat (sacred grain family)
+  if (l.includes('panchgavya') || l.includes('gaumutra') || l.includes('cow')) return Wheat;
+  return Layers;
+}
+
+/* ─── Types ──────────────────────────────────────────────────────────────── */
 
 interface Banner {
   id?: string;
@@ -22,83 +49,322 @@ interface Category {
   icon?: string;
 }
 
+interface SubCategory {
+  id: string;
+  value: string;
+  parentId?: string | null;
+  imageUrl?: string | null;
+}
+
 interface Product {
   id: string;
   name: string;
   price: number;
   discountPrice?: number;
-  images: string[];
-  unit?: string;
-  vendorId: string;
-  User?: { fullname?: string; businessName?: string };
-  distance?: number;
-}
-
-interface FeedPost {
-  id: string;
-  content?: string;
-  caption?: string;
-  images?: string[];
-  imageUrls?: string[];
   imageUrl?: string;
-  createdAt: string;
-  postType?: string;
+  images?: string[];
+  unit?: string;
   userId?: string;
-  User?: { id?: string; fullname: string; profilePhoto?: string };
-  user?: { id?: string; fullname: string; profilePhoto?: string };
-  _count?: { likes: number };
-  likesCount?: number;
+  /* vendor fields returned directly on product from list endpoint */
+  fullname?: string;
+  businessName?: string;
+  state?: string;
+  district?: string;
+  subcategory?: string;
+  subcategoryId?: string;
+  category?: string;
+  categoryId?: string;
+  /* nested user — detail endpoint */
+  user?: { id?: string; fullname?: string; businessName?: string };
+  User?: { id?: string; fullname?: string; businessName?: string };
+  distance?: number;
+  stock?: number;
 }
 
-function timeAgo(date: string): string {
-  const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
+/* ─── Helpers ────────────────────────────────────────────────────────────── */
+
+const BACKEND = 'https://app.gaubook.org';
+function resolveImg(url?: string | null): string {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('/')) return `${BACKEND}${url}`;
+  return url;
 }
 
-// Category color palettes — cycles through these
-const CAT_COLORS = [
-  { bg: '#FFF3E8', accent: '#F07B1D' },
-  { bg: '#FEF3C7', accent: '#B45309' },
-  { bg: '#E8F4FD', accent: '#1E6EAB' },
-  { bg: '#F0FDF4', accent: '#15803D' },
-  { bg: '#FDF2F8', accent: '#9333EA' },
-  { bg: '#FFF1F2', accent: '#BE123C' },
-  { bg: '#ECFDF5', accent: '#059669' },
-  { bg: '#EFF6FF', accent: '#1D4ED8' },
-];
+const productSrc  = (p: Product) => resolveImg(p.imageUrl ?? p.images?.[0]);
+const vendorName  = (p: Product) =>
+  p.businessName ?? p.fullname ??
+  p.user?.businessName ?? p.user?.fullname ??
+  p.User?.businessName ?? p.User?.fullname ?? 'Vendor';
+
+const bannerSrc = (b: Banner) => resolveImg(b.imageUrl ?? b.image);
+const catKey    = (c: Category) => String(c.id ?? c.name ?? '');
+const catLabel  = (c: Category) => c.value ?? c.name ?? String(c.id ?? '');
+
+/* ─── Skeleton card ─────────────────────────────────────────────────────── */
+
+function SkeletonCard() {
+  return (
+    <div style={{
+      background: 'var(--surface)', borderRadius: 16,
+      border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)',
+      overflow: 'hidden',
+    }}>
+      {/* square image placeholder */}
+      <div className="skeleton" style={{ paddingBottom: '100%', position: 'relative' }} />
+      <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div className="skeleton" style={{ height: 12, width: '80%', borderRadius: 6 }} />
+        <div className="skeleton" style={{ height: 10, width: '55%', borderRadius: 6 }} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+          <div className="skeleton" style={{ height: 14, width: '35%', borderRadius: 6 }} />
+          <div className="skeleton" style={{ height: 26, width: 52, borderRadius: 999 }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Product card ──────────────────────────────────────────────────────── */
+
+function ProductCard({ p }: { p: Product }) {
+  const [imgErr, setImgErr] = useState(false);
+  const src        = productSrc(p);
+  const hasDiscount = p.discountPrice != null && Number(p.discountPrice) < Number(p.price);
+  const displayPrice = hasDiscount ? p.discountPrice! : p.price;
+  const discountPct  = hasDiscount
+    ? Math.round(((Number(p.price) - Number(p.discountPrice!)) / Number(p.price)) * 100)
+    : 0;
+  const seller = vendorName(p);
+
+  return (
+    <div style={{
+      background: 'var(--surface)', borderRadius: 16,
+      border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)',
+      overflow: 'hidden', display: 'flex', flexDirection: 'column',
+    }}>
+      {/* Square image */}
+      <Link href={`/market/${p.id}`} style={{ display: 'block', position: 'relative', flexShrink: 0 }}>
+        <div style={{
+          paddingBottom: '100%', position: 'relative',
+          background: 'var(--warm-tint)',
+        }}>
+          {src && !imgErr
+            ? <img
+                src={src}
+                alt={p.name}
+                onError={() => setImgErr(true)}
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Package size={28} style={{ color: 'var(--border)' }} />
+              </div>
+          }
+          {hasDiscount && discountPct > 0 && (
+            <span className="discount-badge">{discountPct}% OFF</span>
+          )}
+        </div>
+      </Link>
+
+      {/* Info */}
+      <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}>
+        <p style={{
+          fontSize: 11.5, fontWeight: 700, lineHeight: 1.25,
+          color: 'var(--text)', letterSpacing: '-0.1px',
+          display: '-webkit-box', WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical', overflow: 'hidden',
+        }}>
+          {p.name}
+        </p>
+
+        {/* Seller */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 3, minWidth: 0 }}>
+          <Store size={10} color="#A0622A" style={{ flexShrink: 0 }} />
+          <span style={{
+            fontSize: 9.5, fontWeight: 500, color: 'var(--text-secondary)',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {seller}
+          </span>
+        </div>
+
+        {/* Distance */}
+        {p.distance != null && p.distance >= 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            <MapPin size={10} color="#F07B1D" style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: 9.5, fontWeight: 600, color: '#F07B1D' }}>
+              {p.distance < 1
+                ? `${Math.round(p.distance * 1000)} m away`
+                : `${p.distance.toFixed(1)} km away`}
+            </span>
+          </div>
+        )}
+
+        {/* Price + VIEW button */}
+        <div style={{
+          display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', marginTop: 'auto', paddingTop: 5,
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span style={{ fontWeight: 800, fontSize: 13, color: '#E65C00', letterSpacing: '-0.2px', lineHeight: 1 }}>
+              ₹{displayPrice}
+            </span>
+            {hasDiscount && (
+              <span style={{ fontSize: 9.5, textDecoration: 'line-through', color: 'var(--text-muted)', lineHeight: 1 }}>
+                ₹{p.price}
+              </span>
+            )}
+          </div>
+          <Link
+            href={`/market/${p.id}`}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 3,
+              height: 26, padding: '0 9px',
+              background: 'var(--brand-gradient)',
+              borderRadius: 999,
+              boxShadow: '0 4px 12px rgba(240,123,29,0.25)',
+              fontSize: 10, fontWeight: 700, color: 'white',
+              textDecoration: 'none', flexShrink: 0,
+            }}
+          >
+            <Plus size={11} /> VIEW
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Sub-category sidebar ──────────────────────────────────────────────── */
+
+function SubCatSidebar({
+  subCategories,
+  selectedSubCat,
+  onSelect,
+}: {
+  subCategories: SubCategory[];
+  selectedSubCat: string;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div
+      className="scrollbar-hide"
+      style={{
+        width: 76, flexShrink: 0,
+        background: 'var(--warm-tint)',
+        border: '1px solid var(--border)',
+        borderRadius: 16,
+        position: 'sticky', top: 130,
+        maxHeight: 'calc(100vh - 148px)',
+        overflowY: 'auto',
+        alignSelf: 'flex-start',
+        paddingBottom: 8,
+      }}
+    >
+      <SubCatItem label="All" imageUrl={null} active={!selectedSubCat} onClick={() => onSelect('')} />
+      {subCategories.map((sub) => (
+        <SubCatItem
+          key={sub.id}
+          label={sub.value}
+          imageUrl={sub.imageUrl ?? null}
+          active={selectedSubCat === sub.id}
+          onClick={() => onSelect(selectedSubCat === sub.id ? '' : sub.id)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function SubCatItem({
+  label, imageUrl, active, onClick,
+}: {
+  label: string; imageUrl: string | null; active: boolean; onClick: () => void;
+}) {
+  const [imgErr, setImgErr] = useState(false);
+  const src = imageUrl ? resolveImg(imageUrl) : null;
+  const showImg = src && !imgErr;
+  const Icon = getSubCatIcon(label);
+
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        gap: 3, padding: '7px 4px 5px', width: '100%',
+        border: 'none', borderLeft: active ? '3px solid #F07B1D' : '3px solid transparent',
+        background: active ? 'rgba(240,123,29,0.07)' : 'none',
+        cursor: 'pointer', boxSizing: 'border-box',
+        transition: 'all 0.16s',
+      }}
+    >
+      {/* 32×32 circle icon (Flutter spec) */}
+      <div style={{
+        width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+        background: active ? 'linear-gradient(135deg, #F9A84D 0%, #F07B1D 50%, #E65C00 100%)' : 'var(--surface)',
+        border: active ? 'none' : '1.5px solid var(--border)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        overflow: 'hidden',
+        boxShadow: active ? '0 4px 10px rgba(240,123,29,0.3)' : '0 1px 3px rgba(0,0,0,0.05)',
+        transition: 'all 0.16s',
+      }}>
+        {showImg ? (
+          <img src={src!} alt={label} onError={() => setImgErr(true)}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <Icon size={14} color={active ? 'white' : 'var(--brown)'} strokeWidth={active ? 2.2 : 1.8} />
+        )}
+      </div>
+
+      {/* Label — clamped to 2 lines */}
+      <span style={{
+        fontSize: 9, fontWeight: active ? 700 : 500, lineHeight: 1.25, textAlign: 'center',
+        color: active ? 'var(--primary)' : 'var(--text-secondary)',
+        width: '100%', padding: '0 3px',
+        display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+        overflow: 'hidden',
+        transition: 'color 0.16s',
+      }}>
+        {label}
+      </span>
+    </button>
+  );
+}
+
+/* ─── Page ───────────────────────────────────────────────────────────────── */
 
 export default function MarketPage() {
-  const [banners, setBanners] = useState<Banner[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [updates, setUpdates] = useState<FeedPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [draftSearch, setDraftSearch] = useState('');
-  const [selectedCat, setSelectedCat] = useState('');
+  const [banners, setBanners]             = useState<Banner[]>([]);
+  const [categories, setCategories]       = useState<Category[]>([]);
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
+  const [products, setProducts]           = useState<Product[]>([]);
+  const [loading, setLoading]             = useState(true);
+  const [search, setSearch]               = useState('');
+  const [draftSearch, setDraftSearch]     = useState('');
+  const [selectedCat, setSelectedCat]     = useState('');
   const [selectedCatLabel, setSelectedCatLabel] = useState('');
-  const [sort, setSort] = useState('');
-  const [totalItems, setTotalItems] = useState(0);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [bannerIdx, setBannerIdx] = useState(0);
-  const [showAllCats, setShowAllCats] = useState(false);
+  const [selectedSubCat, setSelectedSubCat]     = useState('');
+  const [sort, setSort]                   = useState('');
+  const [totalItems, setTotalItems]       = useState(0);
+  const [page, setPage]                   = useState(1);
+  const [totalPages, setTotalPages]       = useState(1);
+  const [bannerIdx, setBannerIdx]         = useState(0);
+  const [filterOpen, setFilterOpen]       = useState(false);
+  const [userCoords, setUserCoords]       = useState<{ lat: number; lng: number } | null>(null);
+  const [nearMeEnabled, setNearMeEnabled] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
-      (pos) => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      (pos) => {
+        setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setNearMeEnabled(true);
+      },
       () => {},
-      { timeout: 8000 }
+      { timeout: 8000 },
     );
   }, []);
 
-  /* ── Bootstrap ── */
+  /* bootstrap */
   useEffect(() => {
     marketApi.getMarketBanners()
       .then((res) => {
@@ -109,27 +375,21 @@ export default function MarketPage() {
     marketApi.getCategories()
       .then((res) => {
         const raw = res.data?.data ?? res.data ?? {};
-        const list: Category[] = Array.isArray(raw.product_category)
-          ? raw.product_category
-          : Array.isArray(raw.categories) ? raw.categories
-          : Array.isArray(raw) ? raw : [];
-        setCategories(list.slice(0, 32));
-      }).catch(() => {});
+        const cats: Category[] =
+          Array.isArray(raw.product_category) ? raw.product_category
+          : Array.isArray(raw.categories)     ? raw.categories
+          : Array.isArray(raw)                ? raw
+          : [];
+        setCategories(cats.slice(0, 32));
 
-    // Fetch recent community updates
-    feedApi.getPosts(1, 8)
-      .then((res) => {
-        const raw = res.data;
-        let list: FeedPost[] = [];
-        if (Array.isArray(raw)) list = raw;
-        else if (Array.isArray(raw?.data?.posts)) list = raw.data.posts;
-        else if (Array.isArray(raw?.data)) list = raw.data;
-        else if (Array.isArray(raw?.posts)) list = raw.posts;
-        setUpdates(list.filter((p) => p.postType?.toLowerCase() !== 'story' && (p.imageUrls?.[0] ?? p.images?.[0] ?? p.imageUrl)).slice(0, 8));
+        const subs: SubCategory[] = Array.isArray(raw.product_subcategory)
+          ? raw.product_subcategory
+          : [];
+        setSubCategories(subs);
       }).catch(() => {});
   }, []);
 
-  /* ── Banner autoplay ── */
+  /* banner autoplay */
   useEffect(() => {
     if (banners.length < 2) return;
     timerRef.current = setInterval(() => setBannerIdx((i) => (i + 1) % banners.length), 4000);
@@ -137,19 +397,21 @@ export default function MarketPage() {
   }, [banners.length]);
 
   const stopAutoplay = () => { if (timerRef.current) clearInterval(timerRef.current); };
-  const prevBanner = () => { stopAutoplay(); setBannerIdx((i) => (i - 1 + banners.length) % banners.length); };
-  const nextBanner = () => { stopAutoplay(); setBannerIdx((i) => (i + 1) % banners.length); };
+  const prevBanner   = () => { stopAutoplay(); setBannerIdx((i) => (i - 1 + banners.length) % banners.length); };
+  const nextBanner   = () => { stopAutoplay(); setBannerIdx((i) => (i + 1) % banners.length); };
 
-  /* ── Products ── */
+  /* products */
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
       const params: Record<string, unknown> = { page, limit: 12 };
-      if (search) params.search = search;
-      if (selectedCat) params.category = selectedCat;
-      if (sort === 'price_asc') { params.sortBy = 'price'; params.sortOrder = 'asc'; }
+      if (search)          params.search        = search;
+      if (selectedCat)     params.categoryId    = selectedCat;
+      if (selectedSubCat)  params.subcategoryId = selectedSubCat;
+      if (sort === 'price_asc')  { params.sortBy = 'price'; params.sortOrder = 'asc'; }
       if (sort === 'price_desc') { params.sortBy = 'price'; params.sortOrder = 'desc'; }
-      if (userCoords) { params.lat = userCoords.lat; params.lng = userCoords.lng; }
+      if (nearMeEnabled && userCoords) { params.lat = userCoords.lat; params.lng = userCoords.lng; }
+
       const res = await marketApi.getProducts(params);
       const payload = res.data?.data ?? res.data ?? {};
       const list: Product[] = Array.isArray(payload) ? payload : (payload.data ?? []);
@@ -161,331 +423,257 @@ export default function MarketPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, selectedCat, sort, userCoords]);
+  }, [page, search, selectedCat, selectedSubCat, sort, userCoords, nearMeEnabled]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
-  const handleSearch = (e: React.FormEvent) => { e.preventDefault(); setSearch(draftSearch); setPage(1); };
-  const clearSearch = () => { setDraftSearch(''); setSearch(''); setPage(1); };
-  const handleSort = (val: string) => { setSort(val); setPage(1); };
-  const selectCat = (key: string, label: string) => {
+  const handleSearch  = (e: React.FormEvent) => { e.preventDefault(); setSearch(draftSearch); setPage(1); };
+  const clearSearch   = () => { setDraftSearch(''); setSearch(''); setPage(1); };
+  const handleSort    = (val: string) => { setSort(val); setPage(1); };
+  const selectCat     = (key: string, label: string) => {
     if (selectedCat === key) { setSelectedCat(''); setSelectedCatLabel(''); }
     else { setSelectedCat(key); setSelectedCatLabel(label); }
+    setSelectedSubCat('');
     setPage(1);
   };
-
-  const catKey = (c: Category) => String(c.id ?? c.name ?? '');
-  const catLabel = (c: Category) => c.value ?? c.name ?? String(c.id ?? '');
-  const productSrc = (p: Product) => p.images?.[0] ?? '';
-  const vendorName = (p: Product) => p.User?.businessName ?? p.User?.fullname ?? 'Vendor';
-  const bannerSrc = (b: Banner) => b.imageUrl ?? b.image ?? '';
-
-  const visibleCats = showAllCats ? categories : categories.slice(0, 12);
+  const selectSubCat  = (id: string) => { setSelectedSubCat(id); setPage(1); };
 
   const pageRange = (): (number | '…')[] => {
     if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
-    if (page <= 4) return [1, 2, 3, 4, 5, '…', totalPages];
+    if (page <= 4)              return [1, 2, 3, 4, 5, '…', totalPages];
     if (page >= totalPages - 3) return [1, '…', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
     return [1, '…', page - 1, page, page + 1, '…', totalPages];
   };
 
+  const hasFilters = !!(selectedCat || selectedSubCat || sort || nearMeEnabled);
+
   return (
     <div style={{ background: 'var(--canvas)', minHeight: '100vh', paddingBottom: 80 }}>
-      <div className="max-w-6xl mx-auto px-4 py-6">
 
-        {/* ── Banner carousel ── */}
-        {banners.length > 0 && (
-          <div className="relative rounded-2xl overflow-hidden mb-6" style={{ height: 220, background: 'var(--primary-light)' }}>
-            <div className="flex h-full" style={{ width: `${banners.length * 100}%`, transform: `translateX(-${bannerIdx * (100 / banners.length)}%)`, transition: 'transform 0.5s ease' }}>
+      {/* ── Banner carousel ── */}
+      {banners.length > 0 && (
+        <div style={{ padding: '8px 12px 0' }}>
+          <div style={{ position: 'relative', height: 140, borderRadius: 16, overflow: 'hidden', background: 'var(--primary-light)' }}>
+            <div style={{ display: 'flex', height: '100%', width: `${banners.length * 100}%`, transform: `translateX(-${bannerIdx * (100 / banners.length)}%)`, transition: 'transform 0.5s ease' }}>
               {banners.map((b, i) => (
-                <div key={b.id ?? i} className="h-full flex-shrink-0 relative" style={{ width: `${100 / banners.length}%` }}>
+                <div key={b.id ?? i} style={{ height: '100%', flexShrink: 0, position: 'relative', width: `${100 / banners.length}%` }}>
                   {bannerSrc(b)
-                    ? <img src={bannerSrc(b)} alt={b.title ?? ''} className="w-full h-full object-cover" />
-                    : <div className="w-full h-full flex flex-col items-center justify-center gap-3"><ShoppingBag size={48} className="opacity-30" style={{ color: 'var(--primary)' }} />{b.title && <p className="font-semibold text-lg" style={{ color: 'var(--brown)' }}>{b.title}</p>}</div>
+                    ? <img src={bannerSrc(b)} alt={b.title ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    : b.title && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}><p style={{ fontWeight: 600, color: 'var(--brown)' }}>{b.title}</p></div>
                   }
                 </div>
               ))}
             </div>
             {banners.length > 1 && (
               <>
-                <button onClick={prevBanner} className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur flex items-center justify-center shadow-sm hover:bg-white transition-colors"><ChevronLeft size={18} /></button>
-                <button onClick={nextBanner} className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur flex items-center justify-center shadow-sm hover:bg-white transition-colors"><ChevronRight size={18} /></button>
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                <button onClick={prevBanner} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.85)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ChevronLeft size={16} />
+                </button>
+                <button onClick={nextBanner} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.85)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ChevronRight size={16} />
+                </button>
+                <div style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 4 }}>
                   {banners.map((_, i) => (
-                    <button key={i} onClick={() => { stopAutoplay(); setBannerIdx(i); }} className="h-2 rounded-full transition-all duration-300" style={{ width: i === bannerIdx ? 20 : 8, background: i === bannerIdx ? 'white' : 'rgba(255,255,255,0.5)' }} />
+                    <button key={i} onClick={() => { stopAutoplay(); setBannerIdx(i); }} style={{ height: 4, borderRadius: 999, border: 'none', cursor: 'pointer', transition: 'all 0.3s', width: i === bannerIdx ? 10 : 4, background: i === bannerIdx ? '#F07B1D' : '#EFE7DC', padding: 0 }} />
                   ))}
                 </div>
               </>
             )}
           </div>
-        )}
-
-        {/* ── Search ── */}
-        <form onSubmit={handleSearch} className="mb-6">
-          <div className="relative flex gap-2">
-            <div className="relative flex-1">
-              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
-              <input className="input" style={{ paddingLeft: 44, paddingRight: draftSearch ? 36 : 14 }} placeholder="Search gau products…" value={draftSearch} onChange={(e) => setDraftSearch(e.target.value)} />
-              {draftSearch && (
-                <button type="button" onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }}><X size={16} /></button>
-              )}
-            </div>
-            <button type="submit" className="btn-primary px-5 py-3">Search</button>
-          </div>
-        </form>
-
-        {/* ── Categories grid ── */}
-        {categories.length > 0 && (
-          <div style={{ marginBottom: 28 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.3px' }}>
-                {selectedCat ? (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ color: 'var(--text-muted)', fontWeight: 500, fontSize: 14 }}>Category:</span>
-                    <span style={{ color: 'var(--primary)' }}>{selectedCatLabel}</span>
-                    <button onClick={() => { setSelectedCat(''); setSelectedCatLabel(''); setPage(1); }} style={{ background: 'var(--primary-light)', border: 'none', color: 'var(--primary)', borderRadius: '50%', width: 20, height: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <X size={11} />
-                    </button>
-                  </span>
-                ) : 'Browse Categories'}
-              </h2>
-              {categories.length > 12 && (
-                <button onClick={() => setShowAllCats(!showAllCats)} style={{ fontSize: 13, fontWeight: 600, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer' }}>
-                  {showAllCats ? 'Show less' : `View all (${categories.length})`}
-                </button>
-              )}
-            </div>
-
-            <div className="cat-grid">
-              {visibleCats.map((cat, i) => {
-                const key = catKey(cat);
-                const label = catLabel(cat);
-                const active = selectedCat === key;
-                const colors = CAT_COLORS[i % CAT_COLORS.length];
-                return (
-                  <button
-                    key={cat.id ?? i}
-                    onClick={() => selectCat(key, label)}
-                    style={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                      padding: '12px 8px', borderRadius: 14, cursor: 'pointer', border: 'none',
-                      transition: 'all 0.15s', textAlign: 'center',
-                      ...(active
-                        ? { background: 'var(--primary)', boxShadow: '0 4px 14px rgba(240,123,29,0.3)' }
-                        : { background: colors.bg }),
-                    }}
-                  >
-                    <div style={{
-                      width: 42, height: 42, borderRadius: 12,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: active ? 'rgba(255,255,255,0.2)' : 'white',
-                      boxShadow: active ? 'none' : '0 1px 4px rgba(0,0,0,0.06)',
-                    }}>
-                      <Layers size={18} color={active ? 'white' : colors.accent} />
-                    </div>
-                    <span style={{
-                      fontSize: 11, fontWeight: 600, lineHeight: 1.3,
-                      color: active ? 'white' : 'var(--text)',
-                      overflow: 'hidden', display: '-webkit-box',
-                      WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                    }}>
-                      {label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* ── Community Updates strip ── */}
-        {updates.length > 0 && !selectedCat && !search && (
-          <div style={{ marginBottom: 28 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <Flame size={16} color="var(--primary)" />
-              <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.3px' }}>Community Updates</h2>
-            </div>
-            <div
-              className="scrollbar-hide"
-              style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4, marginLeft: -16, marginRight: -16, paddingLeft: 16, paddingRight: 16 }}
-            >
-              {updates.map((post) => {
-                const author = post.User ?? post.user;
-                const img = post.imageUrls?.[0] ?? post.images?.[0] ?? post.imageUrl;
-                const text = post.content ?? post.caption ?? '';
-                const likes = post._count?.likes ?? post.likesCount ?? 0;
-                return (
-                  <div
-                    key={post.id}
-                    className="card"
-                    style={{ flexShrink: 0, width: 220, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
-                  >
-                    {img && (
-                      <div style={{ height: 120, overflow: 'hidden', flexShrink: 0 }}>
-                        <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      </div>
-                    )}
-                    <div style={{ padding: '10px 12px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {author && (() => {
-                        const profileId = author.id ?? post.userId;
-                        const inner = (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--primary-light)', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              {author.profilePhoto
-                                ? <img src={author.profilePhoto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                : <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--primary)' }}>{author.fullname[0].toUpperCase()}</span>}
-                            </div>
-                            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {author.fullname.toLowerCase()}
-                            </span>
-                          </div>
-                        );
-                        return profileId
-                          ? <Link href={`/gaushala/${profileId}`} style={{ textDecoration: 'none' }}>{inner}</Link>
-                          : inner;
-                      })()}
-                      {text && (
-                        <p style={{ fontSize: 12.5, color: 'var(--text)', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
-                          {text}
-                        </p>
-                      )}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
-                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{timeAgo(post.createdAt)}</span>
-                        {likes > 0 && (
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: 'var(--text-muted)' }}>
-                            <Heart size={11} /> {likes}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* ── Section heading + Sort & Filter ── */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.3px' }}>
-              {selectedCat ? `${selectedCatLabel} Products` : search ? `Results for "${search}"` : 'All Products'}
-            </h2>
-            {totalItems > 0 && !loading && (
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 100, padding: '2px 10px' }}>
-                {totalItems} items
-              </span>
-            )}
-          </div>
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            <select
-              className="input"
-              value={sort}
-              onChange={(e) => handleSort(e.target.value)}
-              style={{ paddingRight: 32, paddingLeft: 12, paddingTop: 8, paddingBottom: 8, appearance: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, borderRadius: 10 }}
-            >
-              <option value="">Newest</option>
-              <option value="price_asc">Price: Low to High</option>
-              <option value="price_desc">Price: High to Low</option>
-            </select>
-            <ChevronRight size={13} style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%) rotate(90deg)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
-          </div>
         </div>
+      )}
 
-        {/* ── Product grid ── */}
-        {loading ? (
-          <div className="product-grid">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="card">
-                <div className="skeleton aspect-square w-full" />
-                <div className="p-3 space-y-2">
-                  <div className="skeleton h-4 w-3/4" />
-                  <div className="skeleton h-3 w-1/2" />
-                  <div className="skeleton h-4 w-1/3 mt-1" />
-                  <div className="skeleton h-9 w-full mt-2" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : products.length === 0 ? (
-          <div className="text-center py-24">
-            <Package size={52} className="mx-auto mb-4" style={{ color: 'var(--border)' }} />
-            <p className="font-semibold text-lg" style={{ color: 'var(--text-muted)' }}>No products found</p>
-            <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-              {search || selectedCat ? 'Try a different search or category.' : 'Check back soon!'}
-            </p>
-            {(search || selectedCat) && (
-              <button className="btn-outline mt-4 text-sm py-2 px-5" onClick={() => { clearSearch(); setSelectedCat(''); setSelectedCatLabel(''); }}>
-                Clear filters
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="product-grid">
-            {products.map((p) => {
-              const hasDiscount = p.discountPrice != null && p.discountPrice < p.price;
-              const discountPct = hasDiscount ? Math.round(((p.price - p.discountPrice!) / p.price) * 100) : 0;
+      {/* ── Category tabs (sticky) ── */}
+      {categories.length > 0 && (
+        <div style={{ padding: '8px 12px 12px', background: 'var(--canvas)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 60, zIndex: 20 }}>
+          <div className="scrollbar-hide" style={{ display: 'flex', gap: 4, overflowX: 'auto', background: 'var(--warm-tint)', border: '1px solid var(--border)', borderRadius: 12, padding: 4 }}>
+            <button onClick={() => { setSelectedCat(''); setSelectedCatLabel(''); setSelectedSubCat(''); setPage(1); }} style={{ flexShrink: 0, padding: '7px 16px', borderRadius: 10, border: 'none', fontSize: 12.5, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.16s', fontWeight: !selectedCat ? 700 : 500, background: !selectedCat ? 'var(--brand-gradient)' : 'transparent', color: !selectedCat ? 'white' : 'var(--text-secondary)', boxShadow: !selectedCat ? 'var(--shadow-brand)' : 'none' }}>
+              All
+            </button>
+            {categories.map((cat, i) => {
+              const key = catKey(cat); const label = catLabel(cat); const active = selectedCat === key;
               return (
-                <div key={p.id} className="card card-hover flex flex-col group">
-                  <Link href={`/market/${p.id}`} className="block">
-                    <div style={{ height: 180, overflow: 'hidden', position: 'relative', background: 'var(--canvas)', flexShrink: 0 }}>
-                      {productSrc(p)
-                        ? <img src={productSrc(p)} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.3s' }} className="group-hover:scale-105" />
-                        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Package size={40} style={{ color: 'var(--border)' }} /></div>
-                      }
-                      {hasDiscount && discountPct > 0 && <span className="discount-badge">{discountPct}% OFF</span>}
-                    </div>
-                    <div className="p-3 pb-2">
-                      <p style={{ fontWeight: 700, fontSize: 13.5, lineHeight: 1.4, color: 'var(--text)', letterSpacing: '-0.1px' }} className="line-clamp-2">{p.name}</p>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2, flexWrap: 'wrap' }}>
-                        <p style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500, margin: 0 }}>{vendorName(p)}</p>
-                        {p.distance != null && (
-                          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', background: 'var(--primary-light)', borderRadius: 100, padding: '1px 6px', whiteSpace: 'nowrap' }}>
-                            {p.distance < 1 ? `${Math.round(p.distance * 1000)} m` : p.distance < 10 ? `${p.distance.toFixed(1)} km` : `${Math.round(p.distance)} km`}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-baseline gap-1.5 mt-2 flex-wrap">
-                        <span style={{ fontWeight: 800, fontSize: 16, color: 'var(--primary)', letterSpacing: '-0.3px' }}>₹{hasDiscount ? p.discountPrice : p.price}</span>
-                        {hasDiscount && <span style={{ fontSize: 12, textDecoration: 'line-through', color: 'var(--text-muted)' }}>₹{p.price}</span>}
-                        {p.unit && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>/{p.unit}</span>}
-                      </div>
-                    </div>
-                  </Link>
-                  <div className="px-3 pb-3 mt-auto pt-1">
-                    <Link href={`/market/${p.id}`} className="btn-primary w-full text-sm" style={{ padding: '9px 16px', borderRadius: 100, fontSize: 13 }}>
-                      <MessageCircle size={13} /> Enquire
-                    </Link>
-                  </div>
-                </div>
+                <button key={cat.id ?? i} onClick={() => selectCat(key, label)} style={{ flexShrink: 0, padding: '7px 16px', borderRadius: 10, border: 'none', fontSize: 12.5, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.16s', fontWeight: active ? 700 : 500, background: active ? 'var(--brand-gradient)' : 'transparent', color: active ? 'white' : 'var(--text-secondary)', boxShadow: active ? 'var(--shadow-brand)' : 'none' }}>
+                  {label}
+                </button>
               );
             })}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ── Pagination ── */}
-        {!loading && totalPages > 1 && (
-          <div className="flex items-center justify-center gap-1.5 mt-10">
-            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="btn-outline py-2 px-3 disabled:opacity-40"><ChevronLeft size={16} /></button>
-            {pageRange().map((n, i) =>
-              n === '…' ? (
-                <span key={`el-${i}`} className="px-1 text-sm" style={{ color: 'var(--text-muted)' }}>…</span>
-              ) : (
-                <button key={n} onClick={() => setPage(n as number)} className="w-9 h-9 rounded-lg text-sm font-semibold transition-colors border" style={page === n ? { background: 'var(--primary)', color: 'white', border: '1.5px solid var(--primary)' } : { background: 'var(--surface)', color: 'var(--text-muted)', border: '1.5px solid var(--border)' }}>{n}</button>
-              )
-            )}
-            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="btn-outline py-2 px-3 disabled:opacity-40"><ChevronRight size={16} /></button>
+      {/* ── Body: sidebar + content ── */}
+      <div style={{ display: 'flex', gap: 0, padding: '12px 0 0' }}>
+
+        {/* Sub-category sidebar */}
+        {subCategories.length > 0 && (
+          <div style={{ padding: '0 0 0 8px', flexShrink: 0 }}>
+            <SubCatSidebar
+              subCategories={subCategories}
+              selectedSubCat={selectedSubCat}
+              onSelect={selectSubCat}
+            />
           </div>
         )}
+
+        {/* Main content */}
+        <div style={{ flex: 1, minWidth: 0, padding: '0 8px' }}>
+
+          {/* Search + Filter */}
+          <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, marginBottom: filterOpen ? 8 : 12 }}>
+            <div style={{ position: 'relative', flex: 1 }}>
+              <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+              <input className="input" placeholder="Search…" value={draftSearch} onChange={(e) => setDraftSearch(e.target.value)} style={{ paddingLeft: 36, paddingRight: draftSearch ? 34 : 12, fontSize: 13 }} />
+              {draftSearch && (
+                <button type="button" onClick={clearSearch} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+            <button type="button" onClick={() => setFilterOpen((o) => !o)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '0 10px', borderRadius: 12, fontWeight: 700, fontSize: 12, border: hasFilters ? 'none' : '1.5px solid var(--border)', background: hasFilters ? 'var(--brand-gradient)' : 'var(--surface)', color: hasFilters ? 'white' : 'var(--text-muted)', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              <SlidersHorizontal size={14} />
+              {hasFilters ? 'On' : 'Sort'}
+            </button>
+          </form>
+
+          {/* Filter panel */}
+          {filterOpen && (
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap', padding: '10px 12px', background: 'var(--surface)', borderRadius: 12, border: '1.5px solid var(--border)' }}>
+              <div style={{ position: 'relative', flex: '1 1 120px' }}>
+                <select className="input" value={sort} onChange={(e) => handleSort(e.target.value)} style={{ paddingRight: 28, appearance: 'none', cursor: 'pointer', fontSize: 12 }}>
+                  <option value="">Sort: Default</option>
+                  <option value="price_asc">Price: Low → High</option>
+                  <option value="price_desc">Price: High → Low</option>
+                </select>
+                <ChevronRight size={12} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%) rotate(90deg)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+              </div>
+              {/* Near Me toggle */}
+              <button
+                onClick={() => {
+                  if (!userCoords && navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                      (pos) => {
+                        setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                        setNearMeEnabled(true);
+                      },
+                      () => {},
+                      { timeout: 8000 },
+                    );
+                  } else {
+                    setNearMeEnabled((n) => !n);
+                  }
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px',
+                  borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                  background: nearMeEnabled ? 'rgba(240,123,29,0.12)' : 'none',
+                  color: nearMeEnabled ? '#F07B1D' : 'var(--text-muted)',
+                  border: `1.5px solid ${nearMeEnabled ? 'rgba(240,123,29,0.4)' : 'var(--border)'}`,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <Navigation size={13} color={nearMeEnabled ? '#F07B1D' : 'currentColor'} />
+                Near Me
+              </button>
+              {hasFilters && (
+                <button onClick={() => { setSort(''); setSelectedCat(''); setSelectedCatLabel(''); setSelectedSubCat(''); setNearMeEnabled(false); }} style={{ fontSize: 11, fontWeight: 600, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px' }}>
+                  Clear all
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Item count + active filters */}
+          {(!loading && (totalItems > 0 || selectedCat || search || nearMeEnabled)) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+              {nearMeEnabled && userCoords && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 700, color: '#F07B1D', background: 'rgba(240,123,29,0.10)', border: '1px solid rgba(240,123,29,0.30)', borderRadius: 999, padding: '3px 9px' }}>
+                  <Navigation size={11} color="#F07B1D" />
+                  Near Me
+                </span>
+              )}
+              {totalItems > 0 && (
+                <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--brown)', background: 'var(--warm-tint)', border: '1px solid var(--border)', borderRadius: 999, padding: '3px 9px' }}>
+                  {totalItems} items
+                </span>
+              )}
+              {selectedCat && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10.5, fontWeight: 600, color: 'var(--primary)', background: 'rgba(240,123,29,0.08)', border: '1px solid rgba(240,123,29,0.2)', borderRadius: 999, padding: '3px 8px' }}>
+                  {selectedCatLabel}
+                  <button onClick={() => { setSelectedCat(''); setSelectedCatLabel(''); setPage(1); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', padding: 0, display: 'flex', lineHeight: 1 }}>
+                    <X size={10} />
+                  </button>
+                </span>
+              )}
+              {selectedSubCat && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10.5, fontWeight: 600, color: 'var(--brown)', background: 'rgba(123,74,30,0.08)', border: '1px solid rgba(123,74,30,0.2)', borderRadius: 999, padding: '3px 8px' }}>
+                  {subCategories.find(s => s.id === selectedSubCat)?.value ?? ''}
+                  <button onClick={() => { setSelectedSubCat(''); setPage(1); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--brown)', padding: 0, display: 'flex', lineHeight: 1 }}>
+                    <X size={10} />
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Product grid */}
+          {loading ? (
+            <div className="market-grid">
+              {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+            </div>
+          ) : products.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 48, paddingBottom: 48, textAlign: 'center' }}>
+              <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--warm-tint)', border: '2px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+                <Package size={30} color="var(--primary)" strokeWidth={1.5} />
+              </div>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>No products found</h3>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55 }}>
+                {search || selectedCat || selectedSubCat ? 'Try a different filter.' : 'Check back soon!'}
+              </p>
+              {(search || hasFilters) && (
+                <button className="btn-outline" style={{ marginTop: 14, fontSize: 12, padding: '7px 18px' }} onClick={() => { clearSearch(); setSelectedCat(''); setSelectedCatLabel(''); setSelectedSubCat(''); }}>
+                  Clear filters
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="market-grid">
+              {products.map((p) => <ProductCard key={p.id} p={p} />)}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {!loading && totalPages > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 24 }}>
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="btn-outline" style={{ padding: '6px 10px' }}>
+                <ChevronLeft size={15} />
+              </button>
+              {pageRange().map((n, i) =>
+                n === '…' ? (
+                  <span key={`el-${i}`} style={{ fontSize: 12, color: 'var(--text-muted)', padding: '0 3px' }}>…</span>
+                ) : (
+                  <button key={n} onClick={() => setPage(n as number)} style={{ width: 32, height: 32, borderRadius: 8, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'all 0.15s', background: page === n ? 'var(--brand-gradient)' : 'var(--surface)', color: page === n ? 'white' : 'var(--text-muted)', boxShadow: page === n ? 'var(--shadow-brand)' : '0 1px 3px rgba(0,0,0,0.06)' }}>
+                    {n}
+                  </button>
+                )
+              )}
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="btn-outline" style={{ padding: '6px 10px' }}>
+                <ChevronRight size={15} />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <style>{`
-        .cat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .product-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; align-items: start; }
-        @media (min-width: 480px) { .cat-grid { grid-template-columns: repeat(5, 1fr); } .product-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media (min-width: 640px) { .cat-grid { grid-template-columns: repeat(6, 1fr); } .product-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media (min-width: 900px) { .product-grid { grid-template-columns: repeat(4, 1fr); } }
-        @media (min-width: 1024px) { .cat-grid { grid-template-columns: repeat(8, 1fr); } .product-grid { grid-template-columns: repeat(4, 1fr); } }
+        .market-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 8px;
+          margin-bottom: 16px;
+        }
+        @media (min-width: 500px) { .market-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (min-width: 768px) { .market-grid { grid-template-columns: repeat(4, 1fr); gap: 10px; } }
       `}</style>
     </div>
   );

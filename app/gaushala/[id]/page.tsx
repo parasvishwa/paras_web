@@ -205,7 +205,7 @@ function timeAgo(date: string): string {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function CowIcon() {
+function CowIcon(_props?: { size?: number }) {
   return <span style={{ fontSize: 16, lineHeight: 1 }}>🐄</span>;
 }
 
@@ -227,7 +227,11 @@ export default function ProfileDetailPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const id = params.id as string;
+  const rawId = params.id as string;
+  // Support slug URLs like "gaushala-name-city-<uuid>" — extract the trailing UUID
+  const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const uuidMatch = rawId.match(UUID_RE);
+  const id = uuidMatch ? uuidMatch[0] : rawId;
 
   const [profile, setProfile] = useState<ProfileDetail | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -417,11 +421,22 @@ export default function ProfileDetailPage() {
     })();
   }, [id]);
 
+  // SEO: update browser tab title once profile loads
+  useEffect(() => {
+    if (!profile) return;
+    const name = profile.businessName || profile.fullname || 'Profile';
+    const role = Array.isArray(profile.role) ? profile.role[0] : profile.role;
+    const roleLabel = role === 'Gaushala' ? 'Gaushala' : role === 'Vendor' ? 'Vendor' : role || 'Profile';
+    const city = profile.city || profile.state || '';
+    const loc = city ? ` — ${city}` : '';
+    document.title = `${name}${loc} | ${roleLabel} on Gaubook`;
+  }, [profile]);
+
   // Load products for all entity types (fallback if not embedded in profile response)
   useEffect(() => {
     if (!profile || products.length > 0) return;
     setProductsLoading(true);
-    marketApi.getProducts({ vendorId: id, limit: 20 })
+    marketApi.getProducts({ userId: id, limit: 20 })
       .then((res) => {
         const payload = res.data?.data ?? res.data ?? {};
         const list: Product[] = Array.isArray(payload) ? payload : (payload.data ?? []);
@@ -544,10 +559,13 @@ export default function ProfileDetailPage() {
   const roleBadge = ROLE_BADGE_STYLE[role] ?? ROLE_BADGE_STYLE.Gaushala;
 
   const eyebrowLabel =
-    isVendor ? 'Vendor Store' :
+    isVendor ? 'Vendor Profile' :
     isExpert ? 'Expert Profile' :
     role === 'NGO' ? 'NGO Profile' :
-    'Gaushala Profile';
+    role === 'Influencer' ? 'Influencer Profile' :
+    role === 'Volunteer' ? 'Volunteer Profile' :
+    role === 'Gaushala' ? 'Gaushala Profile' :
+    `${role} Profile`;
 
   const avatarRadius = isVendor || isExpert ? '50%' : 16;
 
@@ -1007,20 +1025,47 @@ export default function ProfileDetailPage() {
                 {profile.upiId && (
                   <div style={{ marginBottom: 14 }}>
                     <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>UPI</span>
-                    {/* QR Code — use uploaded image if available, else generate */}
+                    {/* QR Code — generate from upiId first; fall back to uploaded image */}
                     <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
                       <div style={{ background: 'white', padding: 12, borderRadius: 12, border: '1px solid var(--border)', display: 'inline-block' }}>
-                        {profile.upiQrCode ? (
-                          <img src={profile.upiQrCode} alt="UPI QR" style={{ width: 160, height: 160, objectFit: 'contain', display: 'block' }} />
-                        ) : (
-                          <QRCode
-                            value={`upi://pay?pa=${profile.upiId}&pn=${encodeURIComponent(profile.upiMerchantName || profile.businessName || profile.fullname || '')}&cu=INR`}
-                            size={160}
-                            level="M"
-                          />
-                        )}
+                        <QRCode
+                          value={`upi://pay?pa=${profile.upiId}&pn=${encodeURIComponent(profile.upiMerchantName || profile.businessName || profile.fullname || '')}&cu=INR`}
+                          size={160}
+                          level="M"
+                        />
                       </div>
                     </div>
+                    {/* UPI apps strip */}
+                    <div style={{ textAlign: 'center', marginBottom: 14 }}>
+                      <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.5 }}>
+                        Scan with any UPI app to donate directly to this gaushala
+                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+                        {[
+                          { name: 'GPay',       src: '/upi/gpay.svg' },
+                          { name: 'PhonePe',    src: '/upi/phonepe.svg' },
+                          { name: 'Paytm',      src: '/upi/paytm.svg' },
+                          { name: 'BHIM',       src: '/upi/bhim.svg' },
+                          { name: 'Amazon Pay', src: '/upi/amazonpay.svg' },
+                        ].map(app => (
+                          <div key={app.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                            <img
+                              src={app.src}
+                              alt={app.name}
+                              style={{ width: 44, height: 44, borderRadius: 12, boxShadow: '0 1px 6px rgba(0,0,0,0.10)' }}
+                            />
+                            <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>{app.name}</span>
+                          </div>
+                        ))}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--canvas)', border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 6px rgba(0,0,0,0.08)' }}>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-muted)', letterSpacing: 0.5 }}>UPI</span>
+                          </div>
+                          <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>& more</span>
+                        </div>
+                      </div>
+                    </div>
+
                     <div style={{ background: 'var(--canvas)', borderRadius: 10, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                       <div>
                         <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>UPI ID</div>
@@ -1137,7 +1182,7 @@ export default function ProfileDetailPage() {
                 </div>
                 <div style={{ flex: 1 }}>
                   <button
-                    onClick={() => { if (!isLoggedIn()) { toast.error('Please login to review'); router.push('/login'); } else { toast('Review feature coming soon'); } }}
+                    onClick={() => { if (!isLoggedIn()) { toast.error('Please login to review'); router.push('/login'); } }}
                     className="btn-outline"
                     style={{ width: '100%', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   >
@@ -1168,7 +1213,7 @@ export default function ProfileDetailPage() {
                 <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Be the first to share your experience!</p>
                 {!profile.avgRating && (
                   <button
-                    onClick={() => { if (!isLoggedIn()) { toast.error('Please login to review'); router.push('/login'); } else { toast('Review feature coming soon'); } }}
+                    onClick={() => { if (!isLoggedIn()) { toast.error('Please login to review'); router.push('/login'); } }}
                     className="btn-outline"
                     style={{ marginTop: 14, fontSize: 13 }}
                   >
@@ -1280,7 +1325,7 @@ export default function ProfileDetailPage() {
 
               {/* Profile/Store tab switcher */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                {(['profile', ...(hasStore ? ['store'] : [])] as const).map((type) => (
+                {(['profile', ...(hasStore ? ['store'] : [])] as ('profile' | 'store')[]).map((type) => (
                   <button
                     key={type}
                     onClick={() => setShareQrType(type)}

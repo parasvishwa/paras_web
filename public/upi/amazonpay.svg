@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <rect width="48" height="48" rx="12" fill="#131921"/>
+  <!-- amazon text -->
+  <text x="24" y="22" text-anchor="middle" fill="white" font-size="9" font-weight="700" font-family="Arial,sans-serif" letter-spacing="0.3">amazon</text>
+  <!-- smile arc -->
+  <path d="M14 26 Q24 33 34 26" fill="none" stroke="#FF9900" stroke-width="2.2" stroke-linecap="round"/>
+  <!-- arrow tip -->
+  <polygon points="34,23 34,29 37,26" fill="#FF9900"/>
+  <!-- pay text -->
+  <text x="24" y="40" text-anchor="middle" fill="#FF9900" font-size="8.5" font-weight="800" font-family="Arial,sans-serif" letter-spacing="0.5">pay</text>
+</svg>

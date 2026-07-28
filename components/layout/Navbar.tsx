@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  Home, Compass, ShoppingBag, UserCheck, Siren,
+  Home, Compass, ShoppingBag, UserCheck, Cross,
   User, Bell, LogOut, ChevronDown, Plus, X, Menu,
 } from 'lucide-react';
 import { clearAuth, getStoredUser, isLoggedIn, type GbUser } from '@/lib/auth';
@@ -14,7 +14,7 @@ const NAV = [
   { href: '/explore', icon: Compass, label: 'Explore' },
   { href: '/market', icon: ShoppingBag, label: 'Market' },
   { href: '/expert', icon: UserCheck, label: 'Expert' },
-  { href: '/rescue', icon: Siren, label: 'Rescue' },
+  { href: '/rescue', icon: Cross, label: 'Rescue' },
 ];
 
 export default function Navbar() {
@@ -119,7 +119,7 @@ export default function Navbar() {
           position: 'sticky',
           top: appBanner ? 58 : 0,
           zIndex: 50,
-          background: 'rgba(253, 250, 246, 0.92)',
+          background: 'rgba(248, 245, 240, 0.92)',
           backdropFilter: 'blur(14px)',
           WebkitBackdropFilter: 'blur(14px)',
           borderBottom: '1px solid var(--border)',
@@ -250,7 +250,7 @@ export default function Navbar() {
                         right: 0,
                         top: 'calc(100% + 10px)',
                         width: 210,
-                        background: 'rgba(253, 250, 246, 0.98)',
+                        background: 'rgba(248, 245, 240, 0.98)',
                         backdropFilter: 'blur(20px)',
                         WebkitBackdropFilter: 'blur(20px)',
                         borderRadius: 16,
@@ -399,106 +399,85 @@ export default function Navbar() {
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  padding: '10px 4px',
-                  gap: 4,
+                  paddingTop: 8,
+                  paddingBottom: 8,
+                  gap: 3,
                   textDecoration: 'none',
-                  color: active ? 'var(--primary)' : '#9CA3AF',
-                  position: 'relative',
+                  color: active ? 'var(--primary)' : '#9E9E9E',
                 }}
               >
-                {active && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      width: 32,
-                      height: 3,
-                      background: 'var(--primary)',
-                      borderRadius: '0 0 4px 4px',
-                    }}
-                  />
-                )}
-                <Icon size={22} strokeWidth={active ? 2.5 : 1.8} />
-                <span style={{ fontSize: 10, fontWeight: active ? 700 : 500, lineHeight: 1 }}>
-                  {label}
-                </span>
+                {/* Flutter-style pill behind icon+label when active */}
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 3,
+                  padding: active ? '5px 16px' : '5px 10px',
+                  borderRadius: 14,
+                  background: active ? 'var(--primary-shade1)' : 'transparent',
+                  transition: 'all 0.16s ease',
+                }}>
+                  <Icon size={22} strokeWidth={active ? 2.5 : 1.8} />
+                  <span style={{ fontSize: 10.5, fontWeight: active ? 600 : 400, lineHeight: 1 }}>
+                    {label}
+                  </span>
+                </div>
               </Link>
             );
           })}
           {/* Profile tab */}
-          <Link
-            href="/profile"
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '10px 4px',
-              gap: 4,
-              textDecoration: 'none',
-              color: pathname === '/profile' ? 'var(--primary)' : '#9CA3AF',
-              position: 'relative',
-            }}
-          >
-            {pathname === '/profile' && (
-              <div
+          {(() => {
+            const active = pathname === '/profile';
+            return (
+              <Link
+                href="/profile"
                 style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: 32,
-                  height: 3,
-                  background: 'var(--primary)',
-                  borderRadius: '0 0 4px 4px',
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingTop: 8,
+                  paddingBottom: 8,
+                  gap: 3,
+                  textDecoration: 'none',
+                  color: active ? 'var(--primary)' : '#9E9E9E',
                 }}
-              />
-            )}
-            {user?.profilePhoto ? (
-              <img
-                src={user.profilePhoto}
-                alt=""
-                style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  border: pathname === '/profile' ? '2px solid var(--primary)' : '1.5px solid #D1D5DB',
-                }}
-              />
-            ) : (
-              <User size={22} strokeWidth={pathname === '/profile' ? 2.5 : 1.8} />
-            )}
-            <span style={{ fontSize: 10, fontWeight: pathname === '/profile' ? 700 : 500, lineHeight: 1 }}>
-              Profile
-            </span>
-          </Link>
+              >
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 3,
+                  padding: active ? '5px 16px' : '5px 10px',
+                  borderRadius: 14,
+                  background: active ? 'var(--primary-shade1)' : 'transparent',
+                  transition: 'all 0.16s ease',
+                }}>
+                  {user?.profilePhoto ? (
+                    <img
+                      src={user.profilePhoto}
+                      alt=""
+                      style={{
+                        width: 22, height: 22,
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        border: active ? '2px solid var(--primary)' : '1.5px solid #D5D8DB',
+                      }}
+                    />
+                  ) : (
+                    <User size={22} strokeWidth={active ? 2.5 : 1.8} />
+                  )}
+                  <span style={{ fontSize: 10.5, fontWeight: active ? 600 : 400, lineHeight: 1 }}>
+                    Profile
+                  </span>
+                </div>
+              </Link>
+            );
+          })()}
         </div>
       </div>
 
-      {/* Responsive styles */}
-      <style>{`
-        @media (min-width: 768px) {
-          .desktop-nav { display: flex !important; }
-          .mobile-spacer { display: none !important; }
-          .desktop-only-flex { display: flex !important; }
-          .mobile-bottom-nav { display: none !important; }
-          .desktop-hamburger { display: none !important; }
-        }
-        @media (max-width: 767px) {
-          .desktop-nav { display: none !important; }
-          .desktop-only-flex { display: none !important; }
-          .mobile-bottom-nav { display: block !important; }
-          .desktop-hamburger { display: none !important; }
-        }
-        /* Add bottom padding on mobile so content doesn't hide under bottom nav */
-        @media (max-width: 767px) {
-          body { padding-bottom: calc(65px + env(safe-area-inset-bottom)); }
-        }
-      `}</style>
     </>
   );
 }

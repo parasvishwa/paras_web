@@ -60,26 +60,11 @@ export default function RegisterPage() {
       if (photo) fd.append('profilePhoto', photo);
 
       const res = await apiV1.post('/auth/user/social-signup', fd);
-      const { token, user } = res.data.data as { token: string; user: GbUser };
+      const { token, user } = (res.data?.data ?? res.data) as { token: string; user: GbUser };
       saveAuth(token, user);
       toast.success('Profile created! Welcome to Gaubook.');
       router.push('/');
     } catch (e: unknown) {
-      // Fallback: if API returns error but we have a stored token, patch locally
-      const storedToken = getToken();
-      const storedUser = getStoredUser();
-      if (storedToken && storedUser) {
-        const updated: GbUser = {
-          ...storedUser,
-          fullname: fullname.trim(),
-          role: [selectedRole],
-        };
-        if (ROLES_WITH_BIZ.includes(selectedRole)) updated.businessName = businessName.trim();
-        saveAuth(storedToken, updated);
-        toast.success('Profile created! Welcome to Gaubook.');
-        router.push('/');
-        return;
-      }
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data
         ?.message;
       toast.error(msg || 'Something went wrong. Please try again.');

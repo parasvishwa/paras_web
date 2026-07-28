@@ -20,6 +20,9 @@ interface ProfileData {
   mobile?: string;
   email?: string;
   role: string | string[];
+  requestedRole?: string;
+  roleChangeStatus?: string;
+  roleChangeRemarks?: string;
   profilePhoto?: string;
   businessName?: string;
   state?: string;
@@ -315,7 +318,7 @@ export default function ProfilePage() {
     if (activeTab === 'products' && !productsLoaded && profile) {
       setProductsLoading(true);
       marketApi
-        .getProducts({ vendorId: profile.id })
+        .getProducts({ vendorId: getStoredUser()?.id })
         .then((res) => {
           const d = res.data?.data ?? res.data;
           setProducts(Array.isArray(d) ? d : (d?.products ?? []));
@@ -386,19 +389,23 @@ export default function ProfilePage() {
       const res = await profileApi.update(fd);
       const updated: ProfileData = res.data?.data ?? res.data;
 
-      // Update role separately if changed
+      // Submit role change request if role changed (admin must approve before it takes effect)
       const currentRole = Array.isArray(profile?.role) ? (profile.role[0] ?? '') : (profile?.role ?? '');
-      if (editForm.role && editForm.role !== currentRole) {
+      let roleRequestSubmitted = false;
+      if (editForm.role && editForm.role !== currentRole && profile?.roleChangeStatus !== 'Pending') {
         await authApi.updateRole(editForm.role);
+        roleRequestSubmitted = true;
       }
 
       setProfile((prev) => ({
         ...prev!,
         ...updated,
-        role: editForm.role ? [editForm.role] : prev?.role,
+        // Don't change actual role — it only changes after admin approves
+        role: prev?.role ?? '',
+        ...(roleRequestSubmitted ? { requestedRole: editForm.role, roleChangeStatus: 'Pending', roleChangeRemarks: undefined } : {}),
       }));
 
-      // Sync localStorage
+      // Sync localStorage (role stays unchanged until admin approves)
       const stored = getStoredUser();
       if (stored) {
         const next: GbUser = {
@@ -407,12 +414,15 @@ export default function ProfilePage() {
           email: editForm.email.trim() || stored.email,
           businessName: editForm.businessName.trim() || stored.businessName,
           profilePhoto: updated.profilePhoto || stored.profilePhoto,
-          role: editForm.role ? [editForm.role] : stored.role,
         };
         localStorage.setItem('gb_user', JSON.stringify(next));
       }
 
-      toast.success('Profile saved!');
+      if (roleRequestSubmitted) {
+        toast.success(`Role change to ${editForm.role} submitted — awaiting admin approval`);
+      } else {
+        toast.success('Profile saved!');
+      }
       setEditMode(false);
       setPhotoPreview(null);
       setPhotoFile(null);
@@ -515,16 +525,47 @@ export default function ProfilePage() {
       </div>
 
       {/* ── Identity block ───────────────────────────────────────────────────── */}
-      <div className="mt-16 text-center">
-        <h1 className="text-2xl font-bold text-[var(--text)] capitalize leading-tight">
-          {profile.fullname}
+      <div className="mt-20 text-center px-2">
+        <h1 className="text-xl font-bold text-[var(--text)] capitalize leading-tight break-words">
+          {profile.businessName ?? profile.fullname}
         </h1>
+
+        {profile.businessName && profile.businessName !== profile.fullname && (
+          <p className="text-sm text-[var(--text-muted)] mt-0.5 capitalize">{profile.fullname}</p>
+        )}
 
         {roles.length > 0 && (
           <div className="flex flex-wrap gap-2 justify-center mt-2">
             {roles.map((r) => (
               <span key={r} className="badge badge-primary">{r}</span>
             ))}
+          </div>
+        )}
+
+        {profile.roleChangeStatus === 'Pending' && profile.requestedRole && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexWrap: 'wrap', gap: 6, marginTop: 8,
+            padding: '4px 12px', borderRadius: 100, fontSize: 12, fontWeight: 600,
+            background: 'rgba(240,123,29,0.10)', color: 'var(--primary)',
+            border: '1.5px solid rgba(240,123,29,0.30)',
+            maxWidth: '100%', wordBreak: 'break-word',
+          }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--primary)', flexShrink: 0, display: 'inline-block' }} />
+            Role change to {profile.requestedRole} pending approval
+          </div>
+        )}
+
+        {profile.roleChangeStatus === 'Rejected' && profile.roleChangeRemarks && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexWrap: 'wrap', gap: 6, marginTop: 8,
+            padding: '4px 12px', borderRadius: 100, fontSize: 12, fontWeight: 600,
+            background: 'rgba(239,68,68,0.08)', color: '#ef4444',
+            border: '1.5px solid rgba(239,68,68,0.25)',
+            maxWidth: '100%', wordBreak: 'break-word',
+          }}>
+            Role change rejected: {profile.roleChangeRemarks}
           </div>
         )}
 
@@ -536,7 +577,7 @@ export default function ProfilePage() {
         )}
 
         {profile.bio && !editMode && (
-          <p className="mt-3 text-sm text-[var(--text-muted)] max-w-md mx-auto leading-relaxed">
+          <p className="mt-3 text-sm text-[var(--text-muted)] max-w-md mx-auto leading-relaxed break-words">
             {profile.bio}
           </p>
         )}
@@ -550,15 +591,16 @@ export default function ProfilePage() {
             <Edit2 size={14} /> Edit Profile
           </button>
         ) : (
-          <div className="flex gap-2 justify-center mt-4">
+          <div className="flex flex-wrap gap-2 justify-center mt-4">
             <button
               onClick={handleSave}
               disabled={saving}
               className="btn-primary py-2 px-5 text-sm"
+              style={{ minWidth: 130 }}
             >
               <Save size={14} /> {saving ? 'Saving…' : 'Save Changes'}
             </button>
-            <button onClick={cancelEdit} className="btn-outline py-2 px-5 text-sm">
+            <button onClick={cancelEdit} className="btn-outline py-2 px-5 text-sm" style={{ minWidth: 100 }}>
               <X size={14} /> Cancel
             </button>
           </div>
@@ -645,28 +687,38 @@ export default function ProfilePage() {
           {/* Role selector */}
           <div>
             <label className="label">Role</label>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {ALL_ROLES.map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setEditForm({ ...editForm, role: r })}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: 100,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    border: editForm.role === r ? '2px solid var(--primary)' : '1.5px solid var(--border)',
-                    background: editForm.role === r ? 'var(--primary-light)' : 'transparent',
-                    color: editForm.role === r ? 'var(--primary)' : 'var(--text-muted)',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
+            {profile?.roleChangeStatus === 'Pending' ? (
+              <div style={{
+                marginTop: 8, padding: '10px 14px', borderRadius: 10, fontSize: 13,
+                background: 'rgba(240,123,29,0.08)', border: '1.5px solid rgba(240,123,29,0.25)',
+                color: 'var(--primary)', fontWeight: 500,
+              }}>
+                Role change to <strong>{profile.requestedRole}</strong> is pending admin approval. You cannot request another change until this is resolved.
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2 mt-1">
+                {ALL_ROLES.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setEditForm({ ...editForm, role: r })}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: 100,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      border: editForm.role === r ? '2px solid var(--primary)' : '1.5px solid var(--border)',
+                      background: editForm.role === r ? 'var(--primary-light)' : 'transparent',
+                      color: editForm.role === r ? 'var(--primary)' : 'var(--text-muted)',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
