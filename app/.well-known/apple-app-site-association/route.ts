@@ -13,6 +13,7 @@ const AASA = {
           { '/': '/profile/*' },
           { '/': '/events/*' },
           { '/': '/market/*' },
+          { '/': '/post/*' },
         ],
       },
     ],

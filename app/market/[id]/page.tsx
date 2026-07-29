@@ -7,7 +7,7 @@ import { marketApi } from '@/lib/api';
 import { isLoggedIn, getStoredUser } from '@/lib/auth';
 import {
   ChevronLeft, ChevronRight, MessageCircle, Share2,
-  Edit2, MapPin, Package, Store, Loader2, ExternalLink,
+  MapPin, Package, Store, Loader2, ExternalLink,
   X, Copy, Check,
 } from 'lucide-react';
 
@@ -307,11 +307,6 @@ export default function ProductDetailPage() {
             <button onClick={handleShare} className="btn-outline py-3 px-4">
               <Share2 size={18} />
             </button>
-            {isVendor && (
-              <Link href={`/market/${product.id}/edit`} className="btn-outline py-3 px-4 flex items-center gap-2">
-                <Edit2 size={16} /> Edit
-              </Link>
-            )}
           </div>
         </div>
       </div>
