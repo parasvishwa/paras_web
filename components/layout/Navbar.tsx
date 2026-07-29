@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Home, Compass, ShoppingBag, UserCheck, Cross,
-  User, Bell, LogOut, ChevronDown, Plus, X, Menu,
+  User, LogOut, ChevronDown, Plus, X, Menu,
 } from 'lucide-react';
 import { clearAuth, getStoredUser, isLoggedIn, type GbUser } from '@/lib/auth';
 
@@ -218,12 +218,6 @@ export default function Navbar() {
                 >
                   <Plus size={15} /> Add Product
                 </Link>
-
-                <button
-                  style={{ padding: 8, borderRadius: 8, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-                >
-                  <Bell size={20} />
-                </button>
 
                 {/* User avatar / menu */}
                 <div style={{ position: 'relative' }} ref={menuRef}>

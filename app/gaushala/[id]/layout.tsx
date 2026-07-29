@@ -72,7 +72,7 @@ export async function generateMetadata(
   const coverRaw = sub.coverPhoto ?? raw.coverPhoto;
   const cover = Array.isArray(coverRaw) ? (coverRaw as string[])[0] : (coverRaw as string | undefined);
   const photo = (sub.profilePhoto ?? raw.profilePhoto) as string | undefined;
-  const image = resolveImg(cover) ?? resolveImg(photo) ?? 'https://app.gaubook.org/og-default.jpg';
+  const image = resolveImg(cover) ?? resolveImg(photo) ?? 'https://app.gaubook.org/logo-full.png';
 
   const nameSlug = name.toLowerCase().replace(/[^\w\s-]/g, '').trim().replace(/[\s_]+/g, '-').replace(/-+/g, '-');
   const locSlug = location ? location.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s,]+/g, '-').replace(/-+/g, '-') : '';
