@@ -21,6 +21,7 @@ interface Product {
   category?: string;
   isActive?: boolean;
   imageUrl?: string;
+  stock?: number;
   variations?: ProductVariation[];
 }
 
@@ -198,7 +199,10 @@ function ProductCard({
   const img = product.imageUrl;
   const price = product.discountPrice && Number(product.discountPrice) > 0 ? product.discountPrice : product.price;
   const hasDiscount = product.discountPrice && Number(product.discountPrice) > 0 && Number(product.discountPrice) < Number(product.price);
-  const totalStock = product.variations?.reduce((s, v) => s + (v.qty ?? 0), 0) ?? null;
+  const hasVariations = product.variations && product.variations.length > 0;
+  const totalStock = hasVariations
+    ? product.variations!.reduce((s, v) => s + (v.qty ?? 0), 0)
+    : product.stock !== undefined && product.stock !== null ? product.stock : null;
   const lowStock = totalStock !== null && totalStock > 0 && totalStock <= 5;
   const outOfStock = totalStock !== null && totalStock === 0;
 
