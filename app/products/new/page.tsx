@@ -38,6 +38,7 @@ export default function NewProductPage() {
   const [price, setPrice] = useState('');
   const [discountPrice, setDiscountPrice] = useState('');
   const [unit, setUnit] = useState('piece');
+  const [stock, setStock] = useState('');
   const [selectedCat, setSelectedCat] = useState('');
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -72,12 +73,12 @@ export default function NewProductPage() {
   useEffect(() => { loadCategories(); }, [loadCategories]);
 
   const addFiles = useCallback((files: FileList | null) => {
-    if (!files) return;
+    if (!files || images.length >= 1) return;
     const allowed = Array.from(files).filter((f) => f.type.startsWith('image/'));
-    const toAdd = allowed.slice(0, 5 - images.length);
+    const toAdd = allowed.slice(0, 1);
     if (!toAdd.length) return;
-    setImages((prev) => [...prev, ...toAdd]);
-    toAdd.forEach((f) => setPreviews((prev) => [...prev, URL.createObjectURL(f)]));
+    setImages([toAdd[0]]);
+    setPreviews([URL.createObjectURL(toAdd[0])]);
   }, [images.length]);
 
   const removeImage = (i: number) => {
@@ -107,6 +108,7 @@ export default function NewProductPage() {
       fd.append('price', price);
       if (discountPrice && Number(discountPrice) > 0) fd.append('discountPrice', discountPrice);
       fd.append('unit', unit);
+      if (stock && Number(stock) > 0) fd.append('stock', stock);
       fd.append('category', selectedCat);
       images.forEach((img) => fd.append('images', img));
       await marketApi.createProduct(fd);
@@ -194,6 +196,11 @@ export default function NewProductPage() {
                 {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
               </select>
             </div>
+            <div>
+              <label className="label">Stock quantity</label>
+              <input className="input" type="number" placeholder="Leave blank for unlimited" min="0" step="1" value={stock} onChange={(e) => setStock(e.target.value)} />
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Leave blank if stock is unlimited or tracked via product variations.</p>
+            </div>
           </div>
         )}
 
@@ -247,11 +254,11 @@ export default function NewProductPage() {
         {step === 2 && (
           <div className="space-y-5">
             <div className="flex items-center justify-between">
-              <h2 className="font-bold text-lg" style={{ color: 'var(--text)' }}>Product Images</h2>
-              <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>{images.length} / 5</span>
+              <h2 className="font-bold text-lg" style={{ color: 'var(--text)' }}>Product Image</h2>
+              <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>{images.length} / 1</span>
             </div>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Add up to 5 images. The first image will be the cover photo.</p>
-            {images.length < 5 && (
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Add a cover photo for your product.</p>
+            {images.length < 1 && (
               <div
                 onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
                 onDragLeave={() => setDragging(false)}

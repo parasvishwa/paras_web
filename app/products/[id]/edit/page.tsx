@@ -44,6 +44,7 @@ export default function EditProductPage() {
   const [price, setPrice] = useState('');
   const [discountPrice, setDiscountPrice] = useState('');
   const [unit, setUnit] = useState('piece');
+  const [stock, setStock] = useState('');
   const [selectedCat, setSelectedCat] = useState('');
 
   // Images: existing URLs + new files
@@ -78,6 +79,7 @@ export default function EditProductPage() {
         setPrice(prod.price != null ? String(prod.price) : '');
         setDiscountPrice(prod.discountPrice != null && Number(prod.discountPrice) > 0 ? String(prod.discountPrice) : '');
         setUnit(prod.unit ?? 'piece');
+        setStock(prod.stock != null ? String(prod.stock) : '');
         setSelectedCat(prod.category ?? '');
         setExistingImages(prod.imageUrl ? [prod.imageUrl] : []);
 
@@ -95,12 +97,12 @@ export default function EditProductPage() {
   const totalImageCount = existingImages.filter((_, i) => !removedExisting.has(i)).length + newImages.length;
 
   const addFiles = useCallback((files: FileList | null) => {
-    if (!files) return;
+    if (!files || totalImageCount >= 1) return;
     const allowed = Array.from(files).filter((f) => f.type.startsWith('image/'));
-    const toAdd = allowed.slice(0, 5 - totalImageCount);
+    const toAdd = allowed.slice(0, 1);
     if (!toAdd.length) return;
-    setNewImages((prev) => [...prev, ...toAdd]);
-    toAdd.forEach((f) => setNewPreviews((prev) => [...prev, URL.createObjectURL(f)]));
+    setNewImages([toAdd[0]]);
+    setNewPreviews([URL.createObjectURL(toAdd[0])]);
   }, [totalImageCount]);
 
   const removeExisting = (i: number) => setRemovedExisting((prev) => new Set([...prev, i]));
@@ -132,6 +134,8 @@ export default function EditProductPage() {
       if (discountPrice && Number(discountPrice) > 0) fd.append('discountPrice', discountPrice);
       else fd.append('discountPrice', '0');
       fd.append('unit', unit);
+      if (stock && Number(stock) > 0) fd.append('stock', stock);
+      else fd.append('stock', '');
       fd.append('category', selectedCat);
 
       // Tell the backend which existing images to keep
@@ -249,6 +253,11 @@ export default function EditProductPage() {
                 {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
               </select>
             </div>
+            <div>
+              <label className="label">Stock quantity</label>
+              <input className="input" type="number" placeholder="Leave blank for unlimited" min="0" step="1" value={stock} onChange={(e) => setStock(e.target.value)} />
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Leave blank if stock is unlimited or tracked via product variations.</p>
+            </div>
           </div>
         )}
 
@@ -297,10 +306,10 @@ export default function EditProductPage() {
         {step === 2 && (
           <div className="space-y-5">
             <div className="flex items-center justify-between">
-              <h2 className="font-bold text-lg" style={{ color: 'var(--text)' }}>Product Images</h2>
-              <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>{totalImageCount} / 5</span>
+              <h2 className="font-bold text-lg" style={{ color: 'var(--text)' }}>Product Image</h2>
+              <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>{totalImageCount} / 1</span>
             </div>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Keep, remove or add images. The first image will be the cover photo.</p>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Replace or keep the current cover image.</p>
 
             {/* Existing images */}
             {keptExisting.length > 0 && (
@@ -330,7 +339,7 @@ export default function EditProductPage() {
             )}
 
             {/* Upload new */}
-            {totalImageCount < 5 && (
+            {totalImageCount < 1 && (
               <div>
                 {keptExisting.length > 0 && <p className="label mb-2">Add more images</p>}
                 <div
