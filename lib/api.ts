@@ -82,6 +82,8 @@ export const exploreApi = {
 export const marketApi = {
   getProducts: (params: Record<string, unknown> = {}) =>
     apiV1.get('/products', { params: { page: 1, limit: 12, ...params } }),
+  getMyProducts: (page = 1, limit = 20) =>
+    apiV1.get('/products/my', { params: { page, limit } }),
   getProductById: (id: string) => apiV1.get(`/products/${id}`),
   createProduct: (data: FormData) => apiV1.post('/products', data),
   updateProduct: (id: string, data: FormData) => apiV1.put(`/products/${id}`, data),

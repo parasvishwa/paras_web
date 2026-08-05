@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { marketApi } from '@/lib/api';
-import { getStoredUser } from '@/lib/auth';
 import toast from 'react-hot-toast';
 import { Plus, Pencil, Trash2, Package, Search, Loader2, RefreshCw } from 'lucide-react';
 
@@ -11,7 +10,6 @@ interface ProductVariation {
   id: string;
   qty: number;
   price?: string;
-  attributes?: Record<string, string>;
 }
 
 interface Product {
@@ -22,9 +20,8 @@ interface Product {
   unit?: string;
   category?: string;
   isActive?: boolean;
-  images?: string[];
+  imageUrl?: string;
   variations?: ProductVariation[];
-  createdAt?: string;
 }
 
 interface Pagination {
@@ -41,15 +38,13 @@ export default function SellerProductsPage() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [toggling, setToggling] = useState<string | null>(null);
 
-  const user = getStoredUser();
-
-  const fetchProducts = useCallback(async (page = 1, q = '') => {
+  const fetchProducts = useCallback(async (page = 1) => {
     setLoading(true);
     try {
-      const res = await marketApi.getProducts({ userId: user?.id, page, limit: 12, ...(q ? { search: q } : {}) });
+      const res = await marketApi.getMyProducts(page, 20);
       const data = res.data?.data ?? res.data ?? {};
-      const list: Product[] = Array.isArray(data) ? data : (data?.products ?? data?.data ?? []);
-      const pag = data?.pagination ?? { total: list.length, page: 1, totalPages: 1 };
+      const list: Product[] = Array.isArray(data) ? data : (data?.products ?? []);
+      const pag = { total: data?.total ?? list.length, page: data?.page ?? page, totalPages: data?.totalPages ?? 1 };
       setProducts(list);
       setPagination(pag);
     } catch {
@@ -57,9 +52,15 @@ export default function SellerProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, []);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter((p) => p.name.toLowerCase().includes(q) || p.category?.toLowerCase().includes(q));
+  }, [products, search]);
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
@@ -90,21 +91,20 @@ export default function SellerProductsPage() {
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchProducts(1, search.trim());
-  };
-
   return (
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--text)', letterSpacing: '-0.3px' }}>My Products</h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>{pagination.total} listing{pagination.total !== 1 ? 's' : ''}</p>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
+            {filtered.length !== products.length
+              ? `${filtered.length} of ${pagination.total}`
+              : `${pagination.total}`} listing{pagination.total !== 1 ? 's' : ''}
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => fetchProducts(pagination.page, search)} className="btn-outline p-3" title="Refresh">
+          <button onClick={() => fetchProducts(pagination.page)} className="btn-outline p-3" title="Refresh">
             <RefreshCw size={16} />
           </button>
           <Link href="/products/new" className="btn-primary">
@@ -113,35 +113,36 @@ export default function SellerProductsPage() {
         </div>
       </div>
 
-      {/* Search */}
-      <form onSubmit={handleSearch} className="flex gap-2">
-        <div className="relative flex-1">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-          <input
-            className="input pl-10"
-            placeholder="Search your products…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <button type="submit" className="btn-primary px-5">Search</button>
-      </form>
+      {/* Search (client-side filter) */}
+      <div className="relative">
+        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+        <input
+          className="input pl-10"
+          placeholder="Filter your products…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
 
       {/* Products grid */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => <div key={i} className="skeleton h-52 rounded-2xl" />)}
         </div>
-      ) : products.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="card py-16 flex flex-col items-center gap-3">
           <Package size={40} style={{ color: 'var(--text-muted)', opacity: 0.35 }} />
-          <p className="font-semibold" style={{ color: 'var(--text-muted)' }}>No products yet</p>
-          <Link href="/products/new" className="btn-primary mt-2"><Plus size={16} /> Add your first product</Link>
+          <p className="font-semibold" style={{ color: 'var(--text-muted)' }}>
+            {search ? 'No products match your search' : 'No products yet'}
+          </p>
+          {!search && (
+            <Link href="/products/new" className="btn-primary mt-2"><Plus size={16} /> Add your first product</Link>
+          )}
         </div>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {products.map((product) => (
+            {filtered.map((product) => (
               <ProductCard
                 key={product.id}
                 product={product}
@@ -158,7 +159,7 @@ export default function SellerProductsPage() {
             <div className="flex justify-center gap-2 pt-2">
               <button
                 disabled={pagination.page <= 1}
-                onClick={() => fetchProducts(pagination.page - 1, search)}
+                onClick={() => fetchProducts(pagination.page - 1)}
                 className="btn-outline px-4 py-2 text-sm disabled:opacity-40"
               >
                 Previous
@@ -168,7 +169,7 @@ export default function SellerProductsPage() {
               </span>
               <button
                 disabled={pagination.page >= pagination.totalPages}
-                onClick={() => fetchProducts(pagination.page + 1, search)}
+                onClick={() => fetchProducts(pagination.page + 1)}
                 className="btn-outline px-4 py-2 text-sm disabled:opacity-40"
               >
                 Next
@@ -194,7 +195,7 @@ function ProductCard({
   isDeleting: boolean;
   isToggling: boolean;
 }) {
-  const img = product.images?.[0];
+  const img = product.imageUrl;
   const price = product.discountPrice && Number(product.discountPrice) > 0 ? product.discountPrice : product.price;
   const hasDiscount = product.discountPrice && Number(product.discountPrice) > 0 && Number(product.discountPrice) < Number(product.price);
   const totalStock = product.variations?.reduce((s, v) => s + (v.qty ?? 0), 0) ?? null;
@@ -238,12 +239,16 @@ function ProductCard({
         <p className="font-semibold text-sm line-clamp-2 leading-snug" style={{ color: 'var(--text)' }}>{product.name}</p>
         <div className="flex items-baseline gap-2">
           {price ? (
-            <span className="font-bold text-base" style={{ color: 'var(--primary)' }}>₹{parseFloat(price).toLocaleString('en-IN')}</span>
+            <span className="font-bold text-base" style={{ color: 'var(--primary)' }}>
+              {'₹'}{parseFloat(price).toLocaleString('en-IN')}
+            </span>
           ) : (
             <span className="text-sm italic" style={{ color: 'var(--text-muted)' }}>Price on enquiry</span>
           )}
           {hasDiscount && (
-            <span className="text-xs line-through" style={{ color: 'var(--text-muted)' }}>₹{parseFloat(product.price!).toLocaleString('en-IN')}</span>
+            <span className="text-xs line-through" style={{ color: 'var(--text-muted)' }}>
+              {'₹'}{parseFloat(product.price!).toLocaleString('en-IN')}
+            </span>
           )}
           {product.unit && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>/ {product.unit}</span>}
         </div>

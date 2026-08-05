@@ -11,7 +11,7 @@ interface OrderItem {
   status: string;
   price: string;
   quantity: number;
-  product?: { name: string; images?: string[] };
+  product?: { name: string; imageUrl?: string };
 }
 
 interface Order {
@@ -30,18 +30,19 @@ export default function SellerDashboardPage() {
   useEffect(() => {
     Promise.all([
       ordersApi.getVendorOrders(1),
-      marketApi.getProducts({ userId: user?.id, limit: 1 }),
+      marketApi.getMyProducts(1, 1),
     ])
       .then(([ordRes, prodRes]) => {
-        const raw = ordRes.data?.data ?? ordRes.data ?? [];
-        setOrders(Array.isArray(raw) ? raw : []);
+        const ordData = ordRes.data?.data ?? ordRes.data ?? {};
+        const orderList = ordData?.orders ?? (Array.isArray(ordData) ? ordData : []);
+        setOrders(orderList);
         const prodData = prodRes.data?.data ?? prodRes.data ?? {};
-        const total = prodData?.pagination?.total ?? prodData?.total ?? (Array.isArray(prodData) ? prodData.length : 0);
+        const total = prodData?.total ?? (Array.isArray(prodData) ? prodData.length : 0);
         setProductCount(typeof total === 'number' ? total : 0);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [user?.id]);
+  }, []);
 
   const allItems: OrderItem[] = orders.flatMap((o) => (o.items ?? []).map((it) => ({ ...it, _orderId: o.id })));
   const pending = allItems.filter((it) => it.status === 'Pending').length;
@@ -118,8 +119,8 @@ export default function SellerDashboardPage() {
                 <div key={order.id} className="px-5 py-4 flex items-center gap-4">
                   {/* Product thumbnail */}
                   <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0" style={{ background: 'var(--canvas)' }}>
-                    {firstItem?.product?.images?.[0] ? (
-                      <img src={firstItem.product.images[0]} alt="" className="w-full h-full object-cover" />
+                    {firstItem?.product?.imageUrl ? (
+                      <img src={firstItem.product.imageUrl} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Package size={16} style={{ color: 'var(--text-muted)' }} />

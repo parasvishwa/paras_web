@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, DragEvent } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { marketApi } from '@/lib/api';
-import { isLoggedIn } from '@/lib/auth';
+import { isLoggedIn, getStoredUser } from '@/lib/auth';
 import toast from 'react-hot-toast';
 import {
   Upload, X, ChevronLeft, ChevronRight, Check,
@@ -56,7 +56,11 @@ export default function EditProductPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!isLoggedIn()) router.replace('/login');
+    if (!isLoggedIn()) { router.replace('/login'); return; }
+    const user = getStoredUser();
+    const roles: string[] = Array.isArray(user?.role) ? user.role : [];
+    const canSell = ['Vendor', 'Gaushala', 'NGO', 'Expert'].some((r) => roles.includes(r));
+    if (!canSell) router.replace('/market');
   }, [router]);
 
   // Load product + categories in parallel
@@ -75,7 +79,7 @@ export default function EditProductPage() {
         setDiscountPrice(prod.discountPrice != null && Number(prod.discountPrice) > 0 ? String(prod.discountPrice) : '');
         setUnit(prod.unit ?? 'piece');
         setSelectedCat(prod.category ?? '');
-        setExistingImages(Array.isArray(prod.images) ? prod.images : []);
+        setExistingImages(prod.imageUrl ? [prod.imageUrl] : []);
 
         const raw = catRes.data?.data ?? catRes.data ?? {};
         const list: Category[] = Array.isArray(raw.product_category)

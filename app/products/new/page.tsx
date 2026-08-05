@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { marketApi } from '@/lib/api';
-import { isLoggedIn } from '@/lib/auth';
+import { isLoggedIn, getStoredUser } from '@/lib/auth';
 import toast from 'react-hot-toast';
 import {
   Upload, X, ChevronLeft, ChevronRight, Check,
@@ -42,14 +42,20 @@ export default function NewProductPage() {
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
+  const [catError, setCatError] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!isLoggedIn()) router.replace('/login');
+    if (!isLoggedIn()) { router.replace('/login'); return; }
+    const user = getStoredUser();
+    const roles: string[] = Array.isArray(user?.role) ? user.role : [];
+    const canSell = ['Vendor', 'Gaushala', 'NGO', 'Expert'].some((r) => roles.includes(r));
+    if (!canSell) router.replace('/market');
   }, [router]);
 
-  useEffect(() => {
+  const loadCategories = useCallback(() => {
+    setCatError(false);
     marketApi.getCategories()
       .then((res) => {
         const raw = res.data?.data ?? res.data ?? {};
@@ -58,9 +64,12 @@ export default function NewProductPage() {
           : Array.isArray(raw.categories) ? raw.categories
           : Array.isArray(raw) ? raw : [];
         setCategories(list.slice(0, 40));
+        if (list.length === 0) setCatError(true);
       })
-      .catch(() => {});
+      .catch(() => setCatError(true));
   }, []);
+
+  useEffect(() => { loadCategories(); }, [loadCategories]);
 
   const addFiles = useCallback((files: FileList | null) => {
     if (!files) return;
@@ -102,7 +111,7 @@ export default function NewProductPage() {
       images.forEach((img) => fd.append('images', img));
       await marketApi.createProduct(fd);
       toast.success('Product listed!');
-      router.push('/market');
+      router.push('/seller/products');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed. Please try again.';
       toast.error(msg);
@@ -193,7 +202,12 @@ export default function NewProductPage() {
           <div className="space-y-5">
             <h2 className="font-bold text-lg" style={{ color: 'var(--text)' }}>Choose a Category</h2>
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Select the category that best describes your product.</p>
-            {categories.length === 0 ? (
+            {catError ? (
+              <div className="flex flex-col items-center gap-3 py-10">
+                <p className="text-sm" style={{ color: 'var(--danger)' }}>Failed to load categories.</p>
+                <button onClick={loadCategories} className="btn-outline text-sm px-4">Retry</button>
+              </div>
+            ) : categories.length === 0 ? (
               <div className="flex items-center justify-center py-10 gap-2" style={{ color: 'var(--text-muted)' }}>
                 <Loader2 size={20} className="animate-spin" />
                 <span className="text-sm">Loading categories…</span>
