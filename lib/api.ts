@@ -123,6 +123,8 @@ export const ordersApi = {
   getMyOrders: (page = 1) => apiV1.get('/orders', { params: { page } }),
   getVendorOrders: (page = 1) =>
     apiV1.get('/orders/vendor', { params: { page } }),
+  updateItemStatus: (itemId: string, status: string) =>
+    apiV1.put(`/orders/items/${itemId}/status`, { status }),
 };
 
 // ── Notifications ─────────────────────────────────────────────────────────────
