@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Heart, MessageCircle, Eye, Share2, Check, Copy } from 'lucide-react';
+import { ArrowLeft, Heart, MessageCircle, Eye, Share2, Check, ChevronLeft, ChevronRight, X, ZoomIn } from 'lucide-react';
 import { feedApi } from '@/lib/api';
 import { AppGateModal } from '@/components/AppGate';
 import { isLoggedIn } from '@/lib/auth';
@@ -61,6 +61,144 @@ function formatRelative(iso?: string): string {
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function ImageCarousel({ images }: { images: string[] }) {
+  const [idx, setIdx] = useState(0);
+  const [lightbox, setLightbox] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const next = useCallback(() => setIdx(i => (i + 1) % images.length), [images.length]);
+  const prev = useCallback(() => setIdx(i => (i - 1 + images.length) % images.length), [images.length]);
+
+  const stopTimer = useCallback(() => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+  }, []);
+  const startTimer = useCallback(() => {
+    stopTimer();
+    if (images.length <= 1) return;
+    timerRef.current = setInterval(next, 5000);
+  }, [images.length, next, stopTimer]);
+
+  useEffect(() => { startTimer(); return stopTimer; }, [startTimer, stopTimer]);
+
+  const onTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(dx) > 40) { dx < 0 ? next() : prev(); startTimer(); }
+    touchStartX.current = null;
+  };
+
+  const arrowBtn: React.CSSProperties = {
+    position: 'absolute', top: '50%', transform: 'translateY(-50%)',
+    background: 'rgba(0,0,0,0.45)', border: 'none', borderRadius: '50%',
+    width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    cursor: 'pointer', color: 'white', zIndex: 2,
+  };
+
+  return (
+    <>
+      <div
+        style={{ position: 'relative', background: '#111', overflow: 'hidden', userSelect: 'none' }}
+        onMouseEnter={stopTimer} onMouseLeave={startTimer}
+        onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+      >
+        <div
+          style={{ maxHeight: 460, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-in', aspectRatio: images.length > 0 ? undefined : '4/3' }}
+          onClick={() => setLightbox(true)}
+        >
+          <img
+            src={images[idx]}
+            alt="Post image"
+            style={{ width: '100%', maxHeight: 460, objectFit: 'contain', display: 'block' }}
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
+        </div>
+
+        {/* Zoom hint */}
+        <div
+          onClick={() => setLightbox(true)}
+          style={{ position: 'absolute', bottom: images.length > 1 ? 38 : 10, right: 10, background: 'rgba(0,0,0,0.5)', borderRadius: 6, padding: '4px 7px', display: 'flex', cursor: 'pointer' }}
+        >
+          <ZoomIn size={15} color="white" />
+        </div>
+
+        {/* Arrows */}
+        {images.length > 1 && idx > 0 && (
+          <button style={{ ...arrowBtn, left: 10 }} onClick={e => { e.stopPropagation(); prev(); startTimer(); }}>
+            <ChevronLeft size={18} />
+          </button>
+        )}
+        {images.length > 1 && idx < images.length - 1 && (
+          <button style={{ ...arrowBtn, right: 10 }} onClick={e => { e.stopPropagation(); next(); startTimer(); }}>
+            <ChevronRight size={18} />
+          </button>
+        )}
+
+        {/* Counter badge */}
+        {images.length > 1 && (
+          <div style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,0.55)', borderRadius: 99, padding: '3px 10px', fontSize: 12, fontWeight: 700, color: 'white' }}>
+            {idx + 1} / {images.length}
+          </div>
+        )}
+
+        {/* Dot indicators */}
+        {images.length > 1 && (
+          <div style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 5, zIndex: 2 }}>
+            {images.map((_, i) => (
+              <div
+                key={i}
+                onClick={e => { e.stopPropagation(); setIdx(i); startTimer(); }}
+                style={{ width: idx === i ? 18 : 6, height: 6, borderRadius: 3, background: idx === i ? 'white' : 'rgba(255,255,255,0.45)', cursor: 'pointer', transition: 'width 0.2s ease' }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.93)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setLightbox(false)}
+        >
+          <button
+            onClick={() => setLightbox(false)}
+            style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <X size={20} />
+          </button>
+          <img
+            src={images[idx]}
+            alt=""
+            style={{ maxWidth: '94vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 8, boxShadow: '0 24px 80px rgba(0,0,0,0.7)' }}
+            onClick={e => e.stopPropagation()}
+          />
+          {images.length > 1 && (
+            <>
+              {idx > 0 && (
+                <button onClick={e => { e.stopPropagation(); prev(); }} style={{ ...arrowBtn, left: 16, position: 'fixed' }}>
+                  <ChevronLeft size={20} />
+                </button>
+              )}
+              {idx < images.length - 1 && (
+                <button onClick={e => { e.stopPropagation(); next(); }} style={{ ...arrowBtn, right: 16, position: 'fixed' }}>
+                  <ChevronRight size={20} />
+                </button>
+              )}
+              <div style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 6 }}>
+                {images.map((_, i) => (
+                  <div key={i} onClick={e => { e.stopPropagation(); setIdx(i); }} style={{ width: idx === i ? 18 : 6, height: 6, borderRadius: 3, background: idx === i ? 'white' : 'rgba(255,255,255,0.4)', cursor: 'pointer', transition: 'width 0.2s ease' }} />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </>
+  );
 }
 
 export default function PostDetailPage() {
@@ -161,16 +299,7 @@ export default function PostDetailPage() {
         )}
 
         {/* Images */}
-        {images.length > 0 && (
-          <div style={{ background: '#000', maxHeight: 420, overflow: 'hidden' }}>
-            <img
-              src={images[0]}
-              alt="Post image"
-              style={{ width: '100%', maxHeight: 420, objectFit: 'contain', display: 'block' }}
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-            />
-          </div>
-        )}
+        {images.length > 0 && <ImageCarousel images={images} />}
 
         {/* Stats row */}
         <div style={{ display: 'flex', gap: 20, padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
