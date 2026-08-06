@@ -8,6 +8,7 @@ import { feedApi, rescueApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { isLoggedIn } from '@/lib/auth';
 import { AppGateModal } from '@/components/AppGate';
+import { useI18n } from '@/lib/i18n/I18nContext';
 
 const BACKEND = 'https://app.gaubook.org';
 function resolveImg(url?: string | null): string | undefined {
@@ -545,6 +546,7 @@ function PostCard({ post, isLiked, likeCount, onLike, onInteract }: {
   onLike: () => void;
   onInteract?: () => void;
 }) {
+  const { t } = useI18n();
   const author = post.User ?? post.user;
   const role = author ? getRoleLabel(author.role) : '';
   const initials = author ? getInitials(author.fullname) : 'G';
@@ -616,7 +618,7 @@ function PostCard({ post, isLiked, likeCount, onLike, onInteract }: {
             }}
           >
             <UserPlus size={13} strokeWidth={2} />
-            Follow
+            {t('follow')}
           </button>
         </div>
 
@@ -667,7 +669,7 @@ function PostCard({ post, isLiked, likeCount, onLike, onInteract }: {
         </button>
         <button onClick={handleShare} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 8 }}>
           <Share2 size={16} strokeWidth={1.8} />
-          <span style={{ fontWeight: 600 }}>{shares > 0 ? shares : 'Share'}</span>
+          <span style={{ fontWeight: 600 }}>{shares > 0 ? shares : t('share')}</span>
         </button>
       </div>
     </div>
@@ -677,6 +679,7 @@ function PostCard({ post, isLiked, likeCount, onLike, onInteract }: {
 /* ─── Page ───────────────────────────────────────────────────────────────── */
 
 export default function HomePage() {
+  const { t } = useI18n();
   const [posts, setPosts]               = useState<Post[]>([]);
   const [stories, setStories]           = useState<Post[]>([]);
   const [viewingStory, setViewingStory] = useState<number | null>(null);
@@ -779,7 +782,7 @@ export default function HomePage() {
           </p>
           <div style={{ display: 'flex', gap: 10 }}>
             <Link href="/register" style={{ padding: '10px 22px', borderRadius: 100, background: 'var(--primary)', color: 'white', fontSize: 13.5, fontWeight: 700, textDecoration: 'none' }}>Get Started</Link>
-            <Link href="/login" style={{ padding: '10px 20px', borderRadius: 100, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}>Login</Link>
+            <Link href="/login" style={{ padding: '10px 20px', borderRadius: 100, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}>{t('signIn')}</Link>
           </div>
         </div>
       )}
@@ -810,7 +813,7 @@ export default function HomePage() {
             <div style={{ width: 96, height: 96, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-light), #FFF9F3)', border: '2px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
               <Leaf size={40} color="var(--primary)" />
             </div>
-            <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', marginBottom: 8, letterSpacing: '-0.3px' }}>Nothing here yet</h3>
+            <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', marginBottom: 8, letterSpacing: '-0.3px' }}>{t('noContent')}</h3>
             <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 260 }}>Be the first to share something with the Gau seva community.</p>
             <div style={{ marginTop: 20, display: 'flex', gap: 6, opacity: 0.5 }}>
               <Flame size={22} color="var(--primary)" />

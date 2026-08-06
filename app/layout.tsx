@@ -4,6 +4,7 @@ import './globals.css';
 import Navbar from '@/components/layout/Navbar';
 import SplashScreen from '@/components/SplashScreen';
 import { Toaster } from 'react-hot-toast';
+import { I18nProvider } from '@/lib/i18n/I18nContext';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -25,10 +26,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={poppins.className} suppressHydrationWarning>
-        <SplashScreen />
-        <Navbar />
-        <main className="min-h-screen">{children}</main>
-        <Toaster
+        <I18nProvider>
+          <SplashScreen />
+          <Navbar />
+          <main className="min-h-screen">{children}</main>
+          <Toaster
           position="top-center"
           toastOptions={{
             style: {
@@ -40,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             },
           }}
         />
+        </I18nProvider>
       </body>
     </html>
   );

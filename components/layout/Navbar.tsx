@@ -5,30 +5,34 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Home, Compass, ShoppingBag, UserCheck, Cross,
-  User, LogOut, ChevronDown, Plus, X, Menu,
+  User, LogOut, ChevronDown, Plus, X, Menu, Globe,
 } from 'lucide-react';
 import { clearAuth, getStoredUser, isLoggedIn, type GbUser } from '@/lib/auth';
-
-const BASE_NAV = [
-  { href: '/', icon: Home, label: 'Home' },
-  { href: '/explore', icon: Compass, label: 'Explore' },
-  { href: '/market', icon: ShoppingBag, label: 'Market' },
-  { href: '/expert', icon: UserCheck, label: 'Expert' },
-];
+import { useI18n } from '@/lib/i18n/I18nContext';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useI18n();
   const [user, setUser] = useState<GbUser | null>(null);
   const [loggedIn, setLoggedIn] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [appBanner, setAppBanner] = useState(false);
   const [showRescue, setShowRescue] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const BASE_NAV = [
+    { href: '/', icon: Home, label: t('navHome') },
+    { href: '/explore', icon: Compass, label: t('navExplore') },
+    { href: '/market', icon: ShoppingBag, label: t('navMarket') },
+    { href: '/expert', icon: UserCheck, label: t('navExpert') },
+  ];
+
   const NAV = showRescue
-    ? [...BASE_NAV, { href: '/rescue', icon: Cross, label: 'Rescue' }]
+    ? [...BASE_NAV, { href: '/rescue', icon: Cross, label: t('navRescue') }]
     : BASE_NAV;
 
   useEffect(() => {
@@ -216,7 +220,7 @@ export default function Navbar() {
                     textDecoration: 'none',
                   }}
                 >
-                  <Plus size={15} /> Add Product
+                  <Plus size={15} /> {t('addProduct')}
                 </Link>
 
                 {/* User avatar / menu */}
@@ -281,20 +285,31 @@ export default function Navbar() {
                         onClick={() => setUserMenuOpen(false)}
                         style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', fontSize: 13, color: 'var(--text)', textDecoration: 'none' }}
                       >
-                        <User size={15} /> Profile
+                        <User size={15} /> {t('navProfile')}
                       </Link>
                       <Link
                         href="/products/new"
                         onClick={() => setUserMenuOpen(false)}
                         style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', fontSize: 13, color: 'var(--text)', textDecoration: 'none' }}
                       >
-                        <Plus size={15} /> Add Product
+                        <Plus size={15} /> {t('addProduct')}
                       </Link>
+                      <button
+                        onClick={() => setLangOpen((o) => !o)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', fontSize: 13, color: 'var(--text)', background: 'none', border: 'none', width: '100%', cursor: 'pointer', textAlign: 'left' }}
+                      >
+                        <Globe size={15} /> {t('language')}
+                      </button>
+                      {langOpen && (
+                        <div style={{ padding: '4px 14px 10px' }}>
+                          <LanguageSwitcher />
+                        </div>
+                      )}
                       <button
                         onClick={logout}
                         style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', fontSize: 13, color: '#e53e3e', background: 'none', border: 'none', width: '100%', cursor: 'pointer' }}
                       >
-                        <LogOut size={15} /> Logout
+                        <LogOut size={15} /> {t('logout')}
                       </button>
                     </div>
                   )}
@@ -314,7 +329,7 @@ export default function Navbar() {
                     textDecoration: 'none',
                   }}
                 >
-                  Login
+                  {t('signIn')}
                 </Link>
                 <Link
                   href="/register"
@@ -328,7 +343,7 @@ export default function Navbar() {
                     textDecoration: 'none',
                   }}
                 >
-                  Register
+                  {t('signUp')}
                 </Link>
               </div>
             )}
@@ -477,7 +492,7 @@ export default function Navbar() {
                     <User size={22} strokeWidth={active ? 2.5 : 1.8} />
                   )}
                   <span style={{ fontSize: 10.5, fontWeight: active ? 600 : 400, lineHeight: 1 }}>
-                    Profile
+                    {t('navProfile')}
                   </span>
                 </div>
               </Link>

@@ -7,6 +7,7 @@ import {
   Home, Store, UserCheck, Users, SlidersHorizontal, ShieldCheck, Navigation, X,
 } from 'lucide-react';
 import { exploreApi } from '@/lib/api';
+import { useI18n } from '@/lib/i18n/I18nContext';
 
 interface UserCard {
   id: string;
@@ -268,6 +269,7 @@ function SkeletonRow() {
 }
 
 export default function ExplorePage() {
+  const { t } = useI18n();
   const [activeRole, setActiveRole] = useState<RoleTab>('Gaushala');
   const [users, setUsers] = useState<UserCard[]>([]);
   const [loading, setLoading] = useState(true);
@@ -451,7 +453,7 @@ export default function ExplorePage() {
             }}
           >
             <SlidersHorizontal size={15} />
-            {hasFilters ? 'Filtered' : 'Filter'}
+            {t('filter')}
           </button>
         </div>
 
@@ -526,7 +528,7 @@ export default function ExplorePage() {
                 }}
               >
                 <Navigation size={13} color={nearMeActive ? '#F07B1D' : 'currentColor'} />
-                Near Me
+                {t('nearMe')}
               </button>
               {nearMeActive && (
                 <div style={{ position: 'relative' }}>
@@ -567,7 +569,7 @@ export default function ExplorePage() {
                   background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px',
                 }}
               >
-                Clear all
+                {t('clear')}
               </button>
             )}
           </div>
@@ -623,7 +625,7 @@ export default function ExplorePage() {
               className="btn-outline"
               style={{ fontSize: 13, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 4 }}
             >
-              <ChevronLeft size={15} /> Prev
+              <ChevronLeft size={15} /> {t('previous')}
             </button>
             <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Page {page} of {totalPages}</span>
             <button
@@ -632,7 +634,7 @@ export default function ExplorePage() {
               className="btn-outline"
               style={{ fontSize: 13, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 4 }}
             >
-              Next <ChevronRight size={15} />
+              {t('next')} <ChevronRight size={15} />
             </button>
           </div>
         )}

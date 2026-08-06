@@ -8,10 +8,12 @@ import { ArrowRight, RefreshCw } from 'lucide-react';
 import { authApi } from '@/lib/api';
 import { saveAuth } from '@/lib/auth';
 import type { GbUser } from '@/lib/auth';
+import { useI18n } from '@/lib/i18n/I18nContext';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useI18n();
   const next = searchParams.get('next') ?? '/';
   const [step, setStep] = useState<1 | 2>(1);
   const [mobile, setMobile] = useState('');
@@ -30,20 +32,20 @@ function LoginForm() {
   async function handleSendOtp() {
     const cleaned = mobile.trim().replace(/\D/g, '');
     if (cleaned.length !== 10) {
-      toast.error('Enter a valid 10-digit mobile number');
+      toast.error(t('pleaseEnterValid10Digit'));
       return;
     }
     setLoading(true);
     try {
       const res = await authApi.sendOtp(cleaned);
       setPinId(res.data?.data?.pinId ?? '');
-      toast.success('OTP sent!');
+      toast.success(t('sendOtp'));
       setStep(2);
       setTimer(30);
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg || 'Failed to send OTP');
+      toast.error(msg || t('somethingWentWrong'));
     } finally {
       setLoading(false);
     }
@@ -88,11 +90,11 @@ function LoginForm() {
       const { token, user } = (res.data?.data ?? res.data) as { token: string; user: GbUser };
       saveAuth(token, user);
       const hasRole = Array.isArray(user.role) ? user.role.length > 0 : !!user.role;
-      toast.success(hasRole ? 'Welcome back!' : 'OTP verified!');
+      toast.success(hasRole ? t('welcomeBack') : t('otpVerified'));
       router.push(hasRole ? next : '/register');
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg || 'Invalid OTP. Please try again.');
+      toast.error(msg || t('invalidOtp'));
     } finally {
       setLoading(false);
     }
@@ -105,12 +107,12 @@ function LoginForm() {
     try {
       const res = await authApi.sendOtp(cleaned);
       setPinId(res.data?.data?.pinId ?? '');
-      toast.success('OTP resent!');
+      toast.success(t('resendOtp'));
       setTimer(30);
       setOtp(['', '', '', '', '', '']);
       setTimeout(() => otpRefs.current[0]?.focus(), 50);
     } catch {
-      toast.error('Failed to resend OTP');
+      toast.error(t('somethingWentWrong'));
     } finally {
       setLoading(false);
     }
@@ -150,16 +152,16 @@ function LoginForm() {
         <div className="card" style={{ padding: '28px 24px' }}>
           {step === 1 ? (
             <>
-              <span className="eyebrow" style={{ marginBottom: 12 }}>Welcome Back</span>
+              <span className="eyebrow" style={{ marginBottom: 12 }}>{t('welcomeBack')}</span>
               <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.3px', marginBottom: 4 }}>
-                Sign in
+                {t('signIn')}
               </h2>
               <p style={{ fontSize: 13.5, color: 'var(--text-muted)', marginBottom: 22, lineHeight: 1.5 }}>
-                Enter your mobile number to continue
+                {t('signInContinue')}
               </p>
 
               <div className="mb-5">
-                <label className="label">Mobile Number</label>
+                <label className="label">{t('mobileNumber')}</label>
                 <div className="flex gap-2">
                   <div
                     className="input flex-shrink-0 flex items-center justify-center font-semibold"
@@ -171,7 +173,7 @@ function LoginForm() {
                     className="input"
                     type="tel"
                     inputMode="numeric"
-                    placeholder="10-digit number"
+                    placeholder={t('enter10DigitNumber')}
                     maxLength={10}
                     value={mobile}
                     onChange={(e) =>
@@ -193,7 +195,7 @@ function LoginForm() {
                   <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <>
-                    Send OTP <ArrowRight size={16} />
+                    {t('sendOtp')} <ArrowRight size={16} />
                   </>
                 )}
               </button>
@@ -207,15 +209,15 @@ function LoginForm() {
                   setOtp(['', '', '', '', '', '']);
                 }}
               >
-                ← Back
+                ← {t('back')}
               </button>
 
-              <span className="eyebrow" style={{ marginBottom: 12 }}>Verification</span>
+              <span className="eyebrow" style={{ marginBottom: 12 }}>{t('otpVerification')}</span>
               <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.3px', marginBottom: 4 }}>
-                Verify OTP
+                {t('verifyOtp')}
               </h2>
               <p style={{ fontSize: 13.5, color: 'var(--text-muted)', marginBottom: 22 }}>
-                Sent to +91&nbsp;{mobile}
+                {t('otpSentTo', { number: `+91 ${mobile}` })}
               </p>
 
               {/* 6-digit OTP boxes */}
@@ -261,13 +263,13 @@ function LoginForm() {
                 {loading ? (
                   <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  'Verify & Continue'
+                  t('verifyOtp')
                 )}
               </button>
 
               <div className="text-center text-sm" style={{ color: 'var(--text-muted)' }}>
                 {timer > 0 ? (
-                  <span>Resend OTP in {timer}s</span>
+                  <span>{t('resendIn', { s: String(timer) })}</span>
                 ) : (
                   <button
                     className="inline-flex items-center gap-1.5 mx-auto font-semibold"
@@ -275,7 +277,7 @@ function LoginForm() {
                     onClick={handleResend}
                     disabled={loading}
                   >
-                    <RefreshCw size={14} /> Resend OTP
+                    <RefreshCw size={14} /> {t('resendOtp')}
                   </button>
                 )}
               </div>
