@@ -292,8 +292,8 @@ export default function ExplorePage() {
   // Geolocation is requested only when the user clicks "Near Me" — not on mount.
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 400);
-    return () => clearTimeout(t);
+    const timeoutId = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(timeoutId);
   }, [search]);
 
   const fetchUsers = useCallback(async () => {

@@ -81,7 +81,11 @@ export default function EditProductPage() {
         setUnit(prod.unit ?? 'piece');
         setStock(prod.stock != null ? String(prod.stock) : '');
         setSelectedCat(prod.category ?? '');
-        setExistingImages(prod.imageUrl ? [prod.imageUrl] : []);
+        const imgs = [
+          prod.imageUrl,
+          ...(Array.isArray(prod.images) ? prod.images : []),
+        ].filter(Boolean) as string[];
+        setExistingImages(imgs);
 
         const raw = catRes.data?.data ?? catRes.data ?? {};
         const list: Category[] = Array.isArray(raw.product_category)
@@ -101,6 +105,11 @@ export default function EditProductPage() {
     const allowed = Array.from(files).filter((f) => f.type.startsWith('image/'));
     const toAdd = allowed.slice(0, 1);
     if (!toAdd.length) return;
+    const oversized = toAdd.find((f) => f.size > 10 * 1024 * 1024);
+    if (oversized) {
+      toast.error(`"${oversized.name}" exceeds 10 MB.`);
+      return;
+    }
     setNewImages([toAdd[0]]);
     setNewPreviews([URL.createObjectURL(toAdd[0])]);
   }, [totalImageCount]);

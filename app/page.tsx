@@ -202,8 +202,11 @@ function StoryViewer({ stories, startIndex, onClose }: { stories: Post[]; startI
   const [idx, setIdx] = useState(startIndex);
   const [progress, setProgress] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [isWide, setIsWide] = useState(false);
   const startTimeRef = useRef<number>(Date.now());
   const rafRef = useRef<number>(0);
+
+  useEffect(() => { setIsWide(window.innerWidth > 500); }, []);
 
   const story = stories[idx];
   const author = story?.User ?? story?.user;
@@ -262,7 +265,7 @@ function StoryViewer({ stories, startIndex, onClose }: { stories: Post[]; startI
     <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ position: 'absolute', inset: 0 }} onClick={onClose} />
       <div
-        style={{ width: '100%', maxWidth: 390, height: '100dvh', maxHeight: 844, position: 'relative', overflow: 'hidden', borderRadius: typeof window !== 'undefined' && window.innerWidth > 500 ? 20 : 0, background: '#111' }}
+        style={{ width: '100%', maxWidth: 390, height: '100dvh', maxHeight: 844, position: 'relative', overflow: 'hidden', borderRadius: isWide ? 20 : 0, background: '#111' }}
         onMouseDown={onPressStart} onMouseUp={onPressEnd} onTouchStart={onPressStart} onTouchEnd={onPressEnd}
       >
         {imgs[0] ? (
@@ -825,8 +828,8 @@ export default function HomePage() {
         {latestRescue && (
           <Link href="/rescue" style={{ textDecoration: 'none', display: 'block', marginBottom: 12 }}>
             <div style={{ background: 'linear-gradient(135deg, #7F0000 0%, #E53935 100%)', borderRadius: 14, overflow: 'hidden', display: 'flex', alignItems: 'stretch' }}>
-              {(latestRescue.images?.[0] ?? latestRescue.photoUrl) && (
-                <img src={latestRescue.images?.[0] ?? latestRescue.photoUrl} alt="" style={{ width: 90, objectFit: 'cover', flexShrink: 0 }} />
+              {(latestRescue.images?.[0] ?? resolveImg(latestRescue.photoUrl)) && (
+                <img src={latestRescue.images?.[0] ?? resolveImg(latestRescue.photoUrl)} alt="" style={{ width: 90, objectFit: 'cover', flexShrink: 0 }} />
               )}
               <div style={{ padding: '12px 14px', flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>

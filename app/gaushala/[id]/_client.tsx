@@ -1232,7 +1232,7 @@ export default function ProfileDetailClientPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--primary-light)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             {author?.profilePhoto
-                              ? <img src={author.profilePhoto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ? <img src={resolveImg(author.profilePhoto)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                               : <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--primary)' }}>{(author?.fullname?.[0] ?? '?').toUpperCase()}</span>}
                           </div>
                           <div>

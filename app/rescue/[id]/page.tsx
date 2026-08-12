@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Siren, MapPin, Clock, Users, ArrowLeft, ExternalLink, User, Trash2 } from 'lucide-react';
 import { rescueApi } from '@/lib/api';
+import toast from 'react-hot-toast';
 import { AppGateModal } from '@/components/AppGate';
 import { getStoredUser } from '@/lib/auth';
 
@@ -108,6 +109,7 @@ export default function RescueDetailPage() {
       await rescueApi.deleteReport(id!);
       router.replace('/rescue');
     } catch {
+      toast.error('Failed to delete rescue alert.');
       setDeleting(false);
       setConfirmDelete(false);
     }
@@ -250,7 +252,7 @@ export default function RescueDetailPage() {
             fontSize: 12, fontWeight: 700,
             boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
           }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,0.8)', display: r.status === 'Active' ? 'block' : 'none' }} />
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,0.8)', display: r.status?.toLowerCase() === 'active' ? 'block' : 'none' }} />
             {statusConf.label}
           </span>
         </div>

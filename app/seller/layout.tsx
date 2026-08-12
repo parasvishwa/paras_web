@@ -24,7 +24,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
     }
     const user = getStoredUser();
     const roles: string[] = Array.isArray(user?.role) ? user.role : [];
-    if (!roles.includes('Vendor') && !roles.includes('Gaushala') && !roles.includes('NGO') && !roles.includes('Expert')) {
+    if (!roles.includes('Vendor') && !roles.includes('Gaushala') && !roles.includes('NGO') && !roles.includes('Expert') && !roles.includes('Influencer')) {
       router.replace('/market');
       return;
     }

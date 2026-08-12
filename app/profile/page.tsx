@@ -309,7 +309,7 @@ export default function ProfilePage() {
       setPostsLoading(true);
       const uid = profile?.id ?? getStoredUser()?.id;
       feedApi
-        .getMyPosts(1, 100, uid)
+        .getMyPosts(1, 20, uid)
         .then((res) => {
           const d = res.data?.data ?? res.data;
           const all: Post[] = Array.isArray(d) ? d : (d?.posts ?? []);

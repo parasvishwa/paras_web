@@ -10,6 +10,7 @@ import {
   MapPin, Package, Store, Loader2, ExternalLink,
   X, Copy, Check,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const BACKEND = 'https://app.gaubook.org';
 function resolveImg(url?: string | null): string {
@@ -34,6 +35,7 @@ interface Product {
   price: number;
   discountPrice?: number;
   imageUrl?: string;
+  images?: string[];
   category?: string;
   subcategory?: string;
   unit?: string;
@@ -85,7 +87,10 @@ export default function ProductDetailPage() {
     </div>
   );
 
-  const images = [resolveImg(product.imageUrl)].filter(Boolean) as string[];
+  const images = [
+    product.imageUrl,
+    ...(Array.isArray(product.images) ? product.images : []),
+  ].filter(Boolean).map((url) => resolveImg(url as string)).filter(Boolean) as string[];
   const hasImages = images.length > 0;
   const isVendor = loggedIn && currentUser?.id === product.userId;
   const vendorName = product.user?.businessName ?? product.user?.fullname ?? 'Vendor';
@@ -98,14 +103,15 @@ export default function ProductDetailPage() {
 
   /* ── WhatsApp enquiry ── */
   const handleEnquire = () => {
+    const phone = product.user?.mobile;
+    if (!phone) {
+      toast.error('No contact number available.');
+      return;
+    }
     const msg = encodeURIComponent(
       `Hi, I'm interested in "${product.name}" listed on Gaubook.\n\nPrice: ₹${displayPrice}${product.unit ? `/${product.unit}` : ''}\nLink: ${window.location.href}\n\nPlease share more details.`
     );
-    if (product.user?.mobile) {
-      window.open(`https://wa.me/${product.user.mobile.replace(/\D/g, '')}?text=${msg}`, '_blank');
-    } else {
-      window.open(`https://wa.me/?text=${msg}`, '_blank');
-    }
+    window.open(`https://wa.me/${phone.replace(/\D/g, '')}?text=${msg}`, '_blank');
   };
 
   /* ── Share ── */

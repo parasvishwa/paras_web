@@ -235,6 +235,16 @@ export default function GaushalaRegisterPage() {
               </button>
               <input ref={photoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => {
                 const f = e.target.files?.[0]; if (!f) return;
+                if (!f.type.startsWith('image/')) {
+                  toast.error('Please select an image file.');
+                  e.target.value = '';
+                  return;
+                }
+                if (f.size > 5 * 1024 * 1024) {
+                  toast.error('Profile photo must be under 5 MB.');
+                  e.target.value = '';
+                  return;
+                }
                 setProfilePhoto(f);
                 setProfilePreview(URL.createObjectURL(f));
               }} />
@@ -382,7 +392,16 @@ export default function GaushalaRegisterPage() {
                         inp.type = 'file'; inp.accept = '.pdf,.jpg,.jpeg,.png';
                         inp.onchange = (e) => {
                           const f = (e.target as HTMLInputElement).files?.[0];
-                          if (f) addDoc(label, f);
+                          if (!f) return;
+                          if (!f.type.startsWith('image/') && f.type !== 'application/pdf') {
+                            toast.error('Please upload a PDF or image file.');
+                            return;
+                          }
+                          if (f.size > 10 * 1024 * 1024) {
+                            toast.error(`"${f.name}" exceeds 10 MB.`);
+                            return;
+                          }
+                          addDoc(label, f);
                         };
                         inp.click();
                       }}

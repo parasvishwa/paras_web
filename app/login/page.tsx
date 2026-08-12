@@ -79,6 +79,11 @@ function LoginForm() {
   }
 
   async function handleVerify() {
+    if (!pinId) {
+      toast.error('OTP session expired. Please request a new OTP.');
+      setStep(1);
+      return;
+    }
     const code = otp.join('');
     if (code.length !== 6) {
       toast.error('Enter the complete 6-digit OTP');

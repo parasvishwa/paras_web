@@ -262,13 +262,13 @@ export default function ExpertPage() {
 
   /* debounce search */
   useEffect(() => {
-    const t = setTimeout(() => { setPage(1); }, search ? 0 : 0);
-    return () => clearTimeout(t);
+    const timeoutId = setTimeout(() => { setPage(1); }, 400);
+    return () => clearTimeout(timeoutId);
   }, [search]);
 
   useEffect(() => {
-    const t = setTimeout(fetchExperts, draftSearch && !search ? 400 : 0);
-    return () => clearTimeout(t);
+    const timeoutId = setTimeout(fetchExperts, 400);
+    return () => clearTimeout(timeoutId);
   }, [fetchExperts, draftSearch, search]);
 
   const handleSearch = (e: React.FormEvent) => {

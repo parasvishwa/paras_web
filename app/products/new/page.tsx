@@ -77,6 +77,11 @@ export default function NewProductPage() {
     const allowed = Array.from(files).filter((f) => f.type.startsWith('image/'));
     const toAdd = allowed.slice(0, 1);
     if (!toAdd.length) return;
+    const oversized = toAdd.find((f) => f.size > 10 * 1024 * 1024);
+    if (oversized) {
+      toast.error(`"${oversized.name}" exceeds 10 MB.`);
+      return;
+    }
     setImages([toAdd[0]]);
     setPreviews([URL.createObjectURL(toAdd[0])]);
   }, [images.length]);

@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'app.gaubook.org' },
+      { protocol: 'https', hostname: '*.gaubook.org' },
+    ],
+  },
   async headers() {
     return [
       {

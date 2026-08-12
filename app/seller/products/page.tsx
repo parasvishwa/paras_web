@@ -80,6 +80,10 @@ export default function SellerProductsPage() {
   const handleToggleActive = async (product: Product) => {
     setToggling(product.id);
     try {
+      // NOTE: marketApi.updateProduct uses PUT (full replace). The backend
+      // currently has no dedicated PATCH for products, so we send a FormData
+      // with only isActive. If the backend does a full replace, other fields
+      // that are not in this FormData will be overwritten.
       const fd = new FormData();
       fd.append('isActive', String(!product.isActive));
       await marketApi.updateProduct(product.id, fd);
