@@ -204,7 +204,7 @@ export default function EventDetailPage() {
                 <InfoRow icon={<Phone size={15} color={color} />} label="Contact" value={event.contactNumber} />
               </a>
             )}
-            {event.registrationLink && (
+            {event.registrationLink && /^https?:\/\//i.test(event.registrationLink) && (
               <a href={event.registrationLink} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', display: 'block', marginTop: event.contactNumber ? 8 : 0 }}>
                 <InfoRow icon={<ExternalLink size={15} color={color} />} label="Register" value="Tap to open registration link" />
               </a>
