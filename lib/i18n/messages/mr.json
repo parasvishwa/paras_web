@@ -156,5 +156,12 @@
   "notifications": "सूचना",
   "chat": "चॅट",
   "couldNotLoad": "सामग्री लोड होऊ शकली नाही",
-  "noContent": "अजून काहीही नाही"
+  "noContent": "अजून काहीही नाही",
+  "feedFilterAll": "सर्व",
+  "feedFilterGaushala": "गोशाळा",
+  "feedFilterVendor": "विक्रेता",
+  "feedFilterExpert": "तज्ज्ञ",
+  "feedFilterVolunteer": "स्वयंसेवक",
+  "feedFilterInfluencer": "इन्फ्लुएन्सर",
+  "feedFilterNGO": "NGO"
 }

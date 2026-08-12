@@ -154,5 +154,12 @@
   "notifications": "સૂચનો",
   "chat": "Chat",
   "couldNotLoad": "Content could not load",
-  "noContent": "Nothing here yet"
+  "noContent": "Nothing here yet",
+  "feedFilterAll": "બધા",
+  "feedFilterGaushala": "ગૌશાળા",
+  "feedFilterVendor": "વિક્રેતા",
+  "feedFilterExpert": "નિષ્ણાત",
+  "feedFilterVolunteer": "સ્વયંસેવક",
+  "feedFilterInfluencer": "ઇન્ફ્લ્યુએન્સર",
+  "feedFilterNGO": "NGO"
 }

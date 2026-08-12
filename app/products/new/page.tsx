@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { marketApi } from '@/lib/api';
 import { isLoggedIn, getStoredUser } from '@/lib/auth';
 import toast from 'react-hot-toast';
@@ -73,17 +74,19 @@ export default function NewProductPage() {
   useEffect(() => { loadCategories(); }, [loadCategories]);
 
   const addFiles = useCallback((files: FileList | null) => {
-    if (!files || images.length >= 1) return;
-    const allowed = Array.from(files).filter((f) => f.type.startsWith('image/'));
-    const toAdd = allowed.slice(0, 1);
+    if (!files || images.length >= 10) return;
+    const allowed = Array.from(files ?? []).filter((f) => f.type.startsWith('image/'));
+    const slots = 10 - images.length;
+    const toAdd = allowed.slice(0, slots);
     if (!toAdd.length) return;
     const oversized = toAdd.find((f) => f.size > 10 * 1024 * 1024);
     if (oversized) {
       toast.error(`"${oversized.name}" exceeds 10 MB.`);
       return;
     }
-    setImages([toAdd[0]]);
-    setPreviews([URL.createObjectURL(toAdd[0])]);
+    const newPreviews = toAdd.map((f) => URL.createObjectURL(f));
+    setImages((prev) => [...prev, ...toAdd]);
+    setPreviews((prev) => [...prev, ...newPreviews]);
   }, [images.length]);
 
   const removeImage = (i: number) => {
@@ -259,11 +262,11 @@ export default function NewProductPage() {
         {step === 2 && (
           <div className="space-y-5">
             <div className="flex items-center justify-between">
-              <h2 className="font-bold text-lg" style={{ color: 'var(--text)' }}>Product Image</h2>
-              <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>{images.length} / 1</span>
+              <h2 className="font-bold text-lg" style={{ color: 'var(--text)' }}>Product Images</h2>
+              <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>{images.length} / 10</span>
             </div>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Add a cover photo for your product.</p>
-            {images.length < 1 && (
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Add up to 10 photos for your product. The first image will be the cover.</p>
+            {images.length < 10 && (
               <div
                 onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
                 onDragLeave={() => setDragging(false)}
@@ -285,8 +288,8 @@ export default function NewProductPage() {
             {previews.length > 0 && (
               <div className="grid grid-cols-3 gap-3">
                 {previews.map((src, i) => (
-                  <div key={i} className="relative group aspect-square rounded-xl overflow-hidden" style={{ background: 'var(--canvas)' }}>
-                    <img src={src} alt="" className="w-full h-full object-cover" />
+                  <div key={i} className="relative group aspect-square rounded-xl overflow-hidden" style={{ background: 'var(--canvas)', position: 'relative' }}>
+                    <Image src={src} alt="" fill style={{ objectFit: 'cover' }} />
                     {i === 0 && (
                       <span className="absolute top-1.5 left-1.5 text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--primary)', color: 'white' }}>Cover</span>
                     )}

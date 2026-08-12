@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { marketApi, ordersApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { getStoredUser } from '@/lib/auth';
@@ -119,9 +120,9 @@ export default function SellerDashboardPage() {
               return (
                 <div key={order.id} className="px-5 py-4 flex items-center gap-4">
                   {/* Product thumbnail */}
-                  <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0" style={{ background: 'var(--canvas)' }}>
+                  <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 relative" style={{ background: 'var(--canvas)' }}>
                     {firstItem?.product?.imageUrl ? (
-                      <img src={firstItem.product.imageUrl} alt="" className="w-full h-full object-cover" />
+                      <Image src={firstItem.product.imageUrl} alt="" fill style={{ objectFit: 'cover' }} />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Package size={16} style={{ color: 'var(--text-muted)' }} />

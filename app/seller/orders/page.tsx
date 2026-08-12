@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { ordersApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { ShoppingBag, ChevronDown, Package, RefreshCw, Loader2 } from 'lucide-react';
@@ -195,9 +196,9 @@ export default function SellerOrdersPage() {
                       return (
                         <div key={item.id} className="px-5 py-4 flex items-start gap-3" style={{ borderBottom: '1px solid var(--border)' }}>
                           {/* Thumbnail */}
-                          <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0" style={{ background: 'var(--canvas)' }}>
+                          <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 relative" style={{ background: 'var(--canvas)' }}>
                             {item.product?.imageUrl ? (
-                              <img src={item.product.imageUrl} alt="" className="w-full h-full object-cover" />
+                              <Image src={item.product.imageUrl} alt="" fill style={{ objectFit: 'cover' }} />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
                                 <Package size={18} style={{ color: 'var(--text-muted)' }} />

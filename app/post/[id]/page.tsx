@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowLeft, Heart, MessageCircle, Eye, Share2, Check, ChevronLeft, ChevronRight, X, ZoomIn } from 'lucide-react';
 import { feedApi } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -110,11 +111,13 @@ function ImageCarousel({ images }: { images: string[] }) {
           style={{ maxHeight: 460, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-in', aspectRatio: images.length > 0 ? undefined : '4/3' }}
           onClick={() => setLightbox(true)}
         >
-          <img
+          <Image
             src={images[idx]}
             alt="Post image"
-            style={{ width: '100%', maxHeight: 460, objectFit: 'contain', display: 'block' }}
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            width={800}
+            height={460}
+            style={{ width: '100%', maxHeight: 460, objectFit: 'contain', display: 'block', height: 'auto' }}
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
           />
         </div>
 
@@ -171,10 +174,12 @@ function ImageCarousel({ images }: { images: string[] }) {
           >
             <X size={20} />
           </button>
-          <img
+          <Image
             src={images[idx]}
             alt=""
-            style={{ maxWidth: '94vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 8, boxShadow: '0 24px 80px rgba(0,0,0,0.7)' }}
+            width={800}
+            height={600}
+            style={{ maxWidth: '94vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 8, boxShadow: '0 24px 80px rgba(0,0,0,0.7)', width: 'auto', height: 'auto' }}
             onClick={e => e.stopPropagation()}
           />
           {images.length > 1 && (
@@ -249,13 +254,13 @@ export default function PostDetailPage() {
 
   const handleShare = async () => {
     const url = window.location.href;
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      if (navigator.share) navigator.share({ url });
+    if (navigator.share) {
+      navigator.share({ url }).catch(() => {});
+      return;
     }
+    navigator.clipboard.writeText(url)
+      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })
+      .catch(() => {});
   };
 
   if (loading) {
@@ -306,7 +311,7 @@ export default function PostDetailPage() {
           <Link href={getProfilePath(post.user)} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 42, height: 42, borderRadius: '50%', overflow: 'hidden', background: 'var(--primary-tint, #f0faf5)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--border)' }}>
               {authorPhoto
-                ? <img src={resolveImg(authorPhoto)} alt={authorName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ? <Image src={resolveImg(authorPhoto)!} alt={authorName} width={42} height={42} style={{ objectFit: 'cover', borderRadius: '50%' }} />
                 : <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--primary)' }}>{authorName[0]?.toUpperCase()}</span>}
             </div>
             <div>

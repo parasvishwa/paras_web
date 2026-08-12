@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Calendar, MapPin, Users, Phone, ExternalLink, ArrowLeft, Ticket, ChevronRight } from 'lucide-react';
 import { eventsApi } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -113,7 +114,7 @@ export default function EventDetailPage() {
       {/* Hero */}
       <div style={{ position: 'relative', height: 260, background: `linear-gradient(135deg, ${color}E6, ${color}88)` }}>
         {event.coverImage ? (
-          <img src={resolveImg(event.coverImage)} alt={event.title} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
+          <Image src={resolveImg(event.coverImage)!} alt={event.title} fill style={{ objectFit: 'cover' }} />
         ) : (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ fontSize: 80 }}>{meta.emoji}</span>
@@ -219,7 +220,7 @@ export default function EventDetailPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ width: 38, height: 38, borderRadius: '50%', background: `${color}22`, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {event.user.profilePhoto ? (
-                  <img src={resolveImg(event.user.profilePhoto)} alt={event.user.fullname} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <Image src={resolveImg(event.user.profilePhoto)!} alt={event.user.fullname} width={38} height={38} style={{ objectFit: 'cover', borderRadius: '50%' }} />
                 ) : (
                   <span style={{ fontWeight: 700, fontSize: 15, color }}>{(event.user.fullname[0] ?? 'G').toUpperCase()}</span>
                 )}

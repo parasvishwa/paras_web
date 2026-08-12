@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, DragEvent } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Image from 'next/image';
 import { marketApi } from '@/lib/api';
 import { isLoggedIn, getStoredUser } from '@/lib/auth';
 import toast from 'react-hot-toast';
@@ -329,7 +330,7 @@ export default function EditProductPage() {
                     if (removedExisting.has(i)) return null;
                     return (
                       <div key={i} className="relative group aspect-square rounded-xl overflow-hidden" style={{ background: 'var(--canvas)' }}>
-                        <img src={url} alt="" className="w-full h-full object-cover" />
+                        <Image src={url} alt="" fill style={{ objectFit: 'cover' }} />
                         {i === 0 && keptExisting[0] === url && (
                           <span className="absolute top-1.5 left-1.5 text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--primary)', color: 'white' }}>Cover</span>
                         )}
@@ -378,7 +379,7 @@ export default function EditProductPage() {
                 <div className="grid grid-cols-3 gap-3">
                   {newPreviews.map((src, i) => (
                     <div key={i} className="relative group aspect-square rounded-xl overflow-hidden" style={{ background: 'var(--canvas)' }}>
-                      <img src={src} alt="" className="w-full h-full object-cover" />
+                      <Image src={src} alt="" fill style={{ objectFit: 'cover' }} />
                       <button
                         onClick={() => removeNew(i)}
                         className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow"

@@ -156,5 +156,12 @@
   "notifications": "Notifications",
   "chat": "Chat",
   "couldNotLoad": "Could not load content",
-  "noContent": "Nothing here yet"
+  "noContent": "Nothing here yet",
+  "feedFilterAll": "All",
+  "feedFilterGaushala": "Gaushala",
+  "feedFilterVendor": "Vendor",
+  "feedFilterExpert": "Expert",
+  "feedFilterVolunteer": "Volunteer",
+  "feedFilterInfluencer": "Influencer",
+  "feedFilterNGO": "NGO"
 }

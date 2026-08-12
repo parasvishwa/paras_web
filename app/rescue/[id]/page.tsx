@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Siren, MapPin, Clock, Users, ArrowLeft, ExternalLink, User, Trash2 } from 'lucide-react';
 import { rescueApi } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -198,11 +199,12 @@ export default function RescueDetailPage() {
       {/* ── Hero photo ─────────────────────────────────────────────────────── */}
       <div style={{ position: 'relative', height: 300, background: '#1a0000', overflow: 'hidden' }}>
         {allPhotos.length > 0 ? (
-          <img
+          <Image
             src={allPhotos[activePhoto]}
             alt="rescue"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            fill
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+            style={{ objectFit: 'cover' }}
           />
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #3E0000, #E53935)', flexDirection: 'column', gap: 12 }}>
@@ -327,7 +329,7 @@ export default function RescueDetailPage() {
           {(r.reporter ?? r.User)?.fullname && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
               {(r.reporter ?? r.User)?.profilePhoto ? (
-                <img src={(r.reporter ?? r.User)?.profilePhoto} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+                <Image src={(r.reporter ?? r.User)!.profilePhoto!} alt="" width={28} height={28} style={{ borderRadius: '50%', objectFit: 'cover' }} />
               ) : (
                 <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <User size={14} color="var(--primary)" />

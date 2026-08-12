@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { marketApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { Plus, Pencil, Trash2, Package, Search, Loader2, RefreshCw } from 'lucide-react';
@@ -213,9 +214,9 @@ function ProductCard({
   return (
     <div className="card overflow-hidden flex flex-col" style={{ opacity: product.isActive === false ? 0.65 : 1 }}>
       {/* Image */}
-      <div className="relative" style={{ paddingTop: '62%', background: 'var(--canvas)' }}>
+      <div className="relative overflow-hidden" style={{ paddingTop: '62%', background: 'var(--canvas)' }}>
         {img ? (
-          <img src={img} alt={product.name} className="absolute inset-0 w-full h-full object-cover" />
+          <Image src={img} alt={product.name} fill style={{ objectFit: 'cover' }} />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <Package size={28} style={{ color: 'var(--text-muted)', opacity: 0.3 }} />

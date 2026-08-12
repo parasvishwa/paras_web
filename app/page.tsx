@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Heart, MessageCircle, X, Plus, User, Leaf, Flame, Share2, UserPlus, Calendar, MapPin, Users, Ticket } from 'lucide-react';
 import { feedApi, rescueApi } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -82,14 +83,14 @@ function getRoleLabel(role: string | string[]): string {
   return Array.isArray(role) ? role[0] || '' : role || '';
 }
 
-const FILTERS = [
-  { label: 'All', value: '' },
-  { label: 'Gaushala', value: 'Gaushala' },
-  { label: 'Vendor', value: 'Vendor' },
-  { label: 'Expert', value: 'Expert' },
-  { label: 'Volunteer', value: 'Volunteer' },
-  { label: 'Influencer', value: 'Influencer' },
-  { label: 'NGO', value: 'NGO' },
+const FILTERS: { labelKey: string; value: string }[] = [
+  { labelKey: 'feedFilterAll', value: '' },
+  { labelKey: 'feedFilterGaushala', value: 'Gaushala' },
+  { labelKey: 'feedFilterVendor', value: 'Vendor' },
+  { labelKey: 'feedFilterExpert', value: 'Expert' },
+  { labelKey: 'feedFilterVolunteer', value: 'Volunteer' },
+  { labelKey: 'feedFilterInfluencer', value: 'Influencer' },
+  { labelKey: 'feedFilterNGO', value: 'NGO' },
 ];
 
 /* ─── Image Lightbox ─────────────────────────────────────────────────────── */
@@ -117,7 +118,7 @@ function ImageLightbox({ images, startIndex, onClose }: { images: string[]; star
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><polyline points="15,18 9,12 15,6"/></svg>
         </button>
       )}
-      <img src={images[idx]} alt="" onClick={e => e.stopPropagation()} style={{ maxWidth: '92vw', maxHeight: '88vh', objectFit: 'contain', borderRadius: 10, boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }} />
+      <Image src={images[idx]} alt="" width={800} height={600} onClick={e => e.stopPropagation()} style={{ maxWidth: '92vw', maxHeight: '88vh', objectFit: 'contain', borderRadius: 10, boxShadow: '0 24px 80px rgba(0,0,0,0.6)', width: 'auto', height: 'auto' }} />
       {idx < images.length - 1 && (
         <button onClick={e => { e.stopPropagation(); setIdx(i => i + 1); }} style={{ position: 'absolute', right: 12, background: 'rgba(255,255,255,0.14)', border: 'none', borderRadius: '50%', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><polyline points="9,18 15,12 9,6"/></svg>
@@ -143,8 +144,8 @@ function ImageGrid({ images, onImageClick }: { images: string[]; onImageClick: (
 
   if (count === 1) {
     return (
-      <div className="rounded-xl overflow-hidden" style={{ aspectRatio: '4/5' }}>
-        <img src={images[0]} alt="" className="w-full h-full object-cover" style={imgStyle} onClick={() => onImageClick(0)} />
+      <div className="rounded-xl overflow-hidden" style={{ aspectRatio: '4/5', position: 'relative' }}>
+        <Image src={images[0]} alt="" fill style={{ objectFit: 'cover', cursor: 'pointer' }} onClick={() => onImageClick(0)} />
       </div>
     );
   }
@@ -152,7 +153,9 @@ function ImageGrid({ images, onImageClick }: { images: string[]; onImageClick: (
     return (
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, borderRadius: 12, overflow: 'hidden' }}>
         {images.slice(0, 2).map((img, i) => (
-          <img key={i} src={img} alt="" className="w-full object-cover" style={{ aspectRatio: '1', ...imgStyle }} onClick={() => onImageClick(i)} />
+          <div key={i} style={{ position: 'relative', aspectRatio: '1' }}>
+            <Image src={img} alt="" fill style={{ objectFit: 'cover', cursor: 'pointer' }} onClick={() => onImageClick(i)} />
+          </div>
         ))}
       </div>
     );
@@ -160,16 +163,24 @@ function ImageGrid({ images, onImageClick }: { images: string[]; onImageClick: (
   if (count === 3) {
     return (
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '140px 140px', gap: 2, borderRadius: 12, overflow: 'hidden' }}>
-        <img src={images[0]} alt="" className="object-cover w-full h-full" style={{ gridRow: '1 / 3', ...imgStyle }} onClick={() => onImageClick(0)} />
-        <img src={images[1]} alt="" className="object-cover w-full h-full" style={imgStyle} onClick={() => onImageClick(1)} />
-        <img src={images[2]} alt="" className="object-cover w-full h-full" style={imgStyle} onClick={() => onImageClick(2)} />
+        <div style={{ position: 'relative', gridRow: '1 / 3' }}>
+          <Image src={images[0]} alt="" fill style={{ objectFit: 'cover', cursor: 'pointer' }} onClick={() => onImageClick(0)} />
+        </div>
+        <div style={{ position: 'relative' }}>
+          <Image src={images[1]} alt="" fill style={{ objectFit: 'cover', cursor: 'pointer' }} onClick={() => onImageClick(1)} />
+        </div>
+        <div style={{ position: 'relative' }}>
+          <Image src={images[2]} alt="" fill style={{ objectFit: 'cover', cursor: 'pointer' }} onClick={() => onImageClick(2)} />
+        </div>
       </div>
     );
   }
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, borderRadius: 12, overflow: 'hidden' }}>
       {images.slice(0, 4).map((img, i) => (
-        <img key={i} src={img} alt="" className="w-full object-cover" style={{ aspectRatio: '1', ...imgStyle }} onClick={() => onImageClick(i)} />
+        <div key={i} style={{ position: 'relative', aspectRatio: '1' }}>
+          <Image src={img} alt="" fill style={{ objectFit: 'cover', cursor: 'pointer' }} onClick={() => onImageClick(i)} />
+        </div>
       ))}
     </div>
   );
@@ -269,7 +280,7 @@ function StoryViewer({ stories, startIndex, onClose }: { stories: Post[]; startI
         onMouseDown={onPressStart} onMouseUp={onPressEnd} onTouchStart={onPressStart} onTouchEnd={onPressEnd}
       >
         {imgs[0] ? (
-          <img key={imgs[0]} src={imgs[0]} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', background: '#111' }} />
+          <Image key={imgs[0]} src={imgs[0]} alt="" fill style={{ objectFit: 'contain' }} />
         ) : (
           <div style={{ position: 'absolute', inset: 0, background: textGradients[idx % textGradients.length], display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 28px' }}>
             <p style={{ color: 'white', fontSize: 24, fontWeight: 700, textAlign: 'center', lineHeight: 1.5, letterSpacing: '-0.3px', textShadow: '0 2px 12px rgba(0,0,0,0.25)' }}>{text}</p>
@@ -293,7 +304,7 @@ function StoryViewer({ stories, startIndex, onClose }: { stories: Post[]; startI
         <div style={{ position: 'absolute', top: 24, left: 12, right: 12, zIndex: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 38, height: 38, borderRadius: '50%', border: '2px solid #F07B1D', overflow: 'hidden', flexShrink: 0, background: '#F07B1D', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {author?.profilePhoto
-              ? <img src={resolveImg(author.profilePhoto)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ? <Image src={resolveImg(author.profilePhoto)!} alt="" width={38} height={38} style={{ objectFit: 'cover', borderRadius: '50%' }} />
               : <span style={{ color: 'white', fontWeight: 800, fontSize: 16 }}>{(author?.fullname ?? 'G')[0].toUpperCase()}</span>
             }
           </div>
@@ -359,7 +370,7 @@ function StoryStrip({ stories, onStoryClick, onAddStory }: {
             <div style={{ position: 'relative', width: 75, height: 94, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
               {/* Background image */}
               {imgSrc ? (
-                <img src={imgSrc} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                <Image src={imgSrc} alt={name} fill style={{ objectFit: 'cover' }} />
               ) : (
                 <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, var(--primary) 0%, var(--brown) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span style={{ color: 'white', fontSize: 22, fontWeight: 800 }}>{name[0].toUpperCase()}</span>
@@ -370,7 +381,7 @@ function StoryStrip({ stories, onStoryClick, onAddStory }: {
               {/* Small avatar top-left (22px, orange border 1.5px) */}
               <div style={{ position: 'absolute', top: 6, left: 6, width: 22, height: 22, borderRadius: '50%', border: '1.5px solid #F07B1D', overflow: 'hidden', flexShrink: 0, background: '#F07B1D', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {avatarSrc
-                  ? <img src={avatarSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ? <Image src={avatarSrc} alt="" width={22} height={22} style={{ objectFit: 'cover', borderRadius: '50%' }} />
                   : <span style={{ color: 'white', fontSize: 9, fontWeight: 800 }}>{name[0].toUpperCase()}</span>
                 }
               </div>
@@ -473,7 +484,7 @@ function EventCard({ post, onInteract }: { post: Post; onInteract?: () => void }
         {/* Banner */}
         <div style={{ height: 150, position: 'relative', overflow: 'hidden' }}>
           {post.coverImage ? (
-            <img src={resolveImg(post.coverImage)} alt={post.title ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <Image src={resolveImg(post.coverImage)!} alt={post.title ?? ''} fill style={{ objectFit: 'cover' }} />
           ) : (
             <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${color}E6, ${color}88)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontSize: 52 }}>{meta.emoji}</span>
@@ -590,7 +601,7 @@ function PostCard({ post, isLiked, likeCount, onLike, onInteract }: {
             color: 'white', fontWeight: 700, fontSize: 14,
           }}>
             {author?.profilePhoto ? (
-              <img src={resolveImg(author.profilePhoto)} alt={author.fullname} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              <Image src={resolveImg(author.profilePhoto)!} alt={author.fullname} width={40} height={40} style={{ objectFit: 'cover', borderRadius: '50%' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
             ) : initials}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -798,7 +809,7 @@ export default function HomePage() {
         <div className="scrollbar-hide" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 16 }}>
           {FILTERS.map((f) => (
             <button key={f.value} onClick={() => setActiveFilter(f.value)} className={`filter-pill${activeFilter === f.value ? ' active' : ''}`}>
-              {f.label}
+              {t(f.labelKey)}
             </button>
           ))}
         </div>
@@ -829,7 +840,9 @@ export default function HomePage() {
           <Link href="/rescue" style={{ textDecoration: 'none', display: 'block', marginBottom: 12 }}>
             <div style={{ background: 'linear-gradient(135deg, #7F0000 0%, #E53935 100%)', borderRadius: 14, overflow: 'hidden', display: 'flex', alignItems: 'stretch' }}>
               {(latestRescue.images?.[0] ?? resolveImg(latestRescue.photoUrl)) && (
-                <img src={latestRescue.images?.[0] ?? resolveImg(latestRescue.photoUrl)} alt="" style={{ width: 90, objectFit: 'cover', flexShrink: 0 }} />
+                <div style={{ position: 'relative', width: 90, flexShrink: 0, alignSelf: 'stretch' }}>
+                  <Image src={(latestRescue.images?.[0] ?? resolveImg(latestRescue.photoUrl))!} alt="" fill style={{ objectFit: 'cover' }} />
+                </div>
               )}
               <div style={{ padding: '12px 14px', flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>

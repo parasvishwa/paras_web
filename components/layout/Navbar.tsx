@@ -239,7 +239,7 @@ export default function Navbar() {
                     }}
                   >
                     {user?.profilePhoto ? (
-                      <img src={user.profilePhoto} alt="" style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', border: '2.5px solid var(--primary)', outline: '1px solid var(--primary-light)', outlineOffset: 1 }} />
+                      <Image src={user.profilePhoto} alt="" width={34} height={34} style={{ borderRadius: '50%', objectFit: 'cover', border: '2.5px solid var(--primary)', outline: '1px solid var(--primary-light)', outlineOffset: 1 }} />
                     ) : (
                       <div
                         style={{
@@ -478,11 +478,12 @@ export default function Navbar() {
                   transition: 'all 0.16s ease',
                 }}>
                   {user?.profilePhoto ? (
-                    <img
+                    <Image
                       src={user.profilePhoto}
                       alt=""
+                      width={22}
+                      height={22}
                       style={{
-                        width: 22, height: 22,
                         borderRadius: '50%',
                         objectFit: 'cover',
                         border: active ? '2px solid var(--primary)' : '1.5px solid #D5D8DB',

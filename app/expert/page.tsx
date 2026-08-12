@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { expertApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { Search, Star, MapPin, Users, ChevronLeft, ChevronRight, X, BadgeCheck } from 'lucide-react';
@@ -107,11 +108,13 @@ function ExpertCard({ expert }: { expert: Expert }) {
         {/* Avatar — 72×72, 12px radius, no ring (Flutter spec) */}
         <div style={{ flexShrink: 0 }}>
           {src && !imgErr ? (
-            <img
+            <Image
               src={src}
               alt={name}
+              width={72}
+              height={72}
               onError={() => setImgErr(true)}
-              style={{ width: 72, height: 72, borderRadius: 12, objectFit: 'cover', display: 'block' }}
+              style={{ borderRadius: 12, objectFit: 'cover', display: 'block' }}
             />
           ) : (
             <div style={{
@@ -292,9 +295,9 @@ export default function ExpertPage() {
               transition: 'transform 0.42s cubic-bezier(0.33,1,0.68,1)',
             }}>
               {banners.map((b, i) => (
-                <div key={b.id ?? i} style={{ height: '100%', flexShrink: 0, width: `${100 / banners.length}%` }}>
+                <div key={b.id ?? i} style={{ height: '100%', flexShrink: 0, width: `${100 / banners.length}%`, position: 'relative' }}>
                   {bannerSrc(b)
-                    ? <img src={bannerSrc(b)} alt={b.title ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    ? <Image src={bannerSrc(b)} alt={b.title ?? ''} fill style={{ objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                     : b.title && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 16 }}><p style={{ fontWeight: 600, color: 'var(--brown)', textAlign: 'center' }}>{b.title}</p></div>
                   }
                 </div>

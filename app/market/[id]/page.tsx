@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { marketApi } from '@/lib/api';
 import { isLoggedIn, getStoredUser } from '@/lib/auth';
@@ -126,7 +127,8 @@ export default function ProductDetailPage() {
   };
 
   const copyLink = async () => {
-    await navigator.clipboard.writeText(window.location.href);
+    await navigator.clipboard.writeText(window.location.href)
+      .catch(() => { toast.error('Could not copy link'); return; });
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -148,10 +150,11 @@ export default function ProductDetailPage() {
           >
             {hasImages ? (
               <>
-                <img
+                <Image
                   src={images[mainIdx]}
                   alt={product.name}
-                  className="w-full h-full object-cover"
+                  fill
+                  style={{ objectFit: 'cover' }}
                 />
                 {images.length > 1 && (
                   <>
@@ -189,7 +192,7 @@ export default function ProductDetailPage() {
                     border: i === mainIdx ? '2px solid var(--primary)' : '2px solid var(--border)',
                   }}
                 >
-                  <img src={src} alt="" className="w-full h-full object-cover" />
+                  <Image src={src} alt="" width={64} height={64} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
                 </button>
               ))}
             </div>
@@ -266,10 +269,13 @@ export default function ProductDetailPage() {
               <>
                 <div className="shrink-0">
                   {product.user?.profilePhoto ? (
-                    <img
-                      src={resolveImg(product.user.profilePhoto)}
+                    <Image
+                      src={resolveImg(product.user.profilePhoto)!}
                       alt={vendorName}
-                      className="w-12 h-12 rounded-full object-cover"
+                      width={48}
+                      height={48}
+                      className="rounded-full"
+                      style={{ objectFit: 'cover' }}
                     />
                   ) : (
                     <div

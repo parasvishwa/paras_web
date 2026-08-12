@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   MapPin, Star, Share2, ArrowLeft, Phone,
   Package, MessageCircle, Globe, Shield,
@@ -599,12 +600,12 @@ export default function ProfileDetailClientPage() {
       <div style={{ position: 'relative', height: 200, width: '100%', flexShrink: 0 }}>
         {profile.coverPhoto && !coverError ? (
           <>
-            <img src={profile.coverPhoto} alt={name} onError={() => setCoverError(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'absolute', inset: 0 }} />
+            <Image src={profile.coverPhoto} alt={name} fill onError={() => setCoverError(true)} style={{ objectFit: 'cover' }} />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.45) 100%)', pointerEvents: 'none' }} />
           </>
         ) : (
           <div style={{ width: '100%', height: '100%', background: '#FDFAF6', position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img src="/logo.png" alt="" style={{ height: 100, opacity: 0.15, objectFit: 'contain', pointerEvents: 'none' }} />
+            <Image src="/logo.png" alt="" width={100} height={100} style={{ opacity: 0.15, objectFit: 'contain', pointerEvents: 'none' }} />
           </div>
         )}
         <button onClick={() => router.back()} style={{ position: 'absolute', top: 14, left: 14, width: 36, height: 36, borderRadius: '50%', background: (profile.coverPhoto && !coverError) ? 'rgba(0,0,0,0.38)' : 'rgba(0,0,0,0.08)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: (profile.coverPhoto && !coverError) ? 'white' : 'var(--text)' }}>
@@ -620,8 +621,8 @@ export default function ProfileDetailClientPage() {
         <div style={{ marginTop: -36, marginBottom: 14, position: 'relative', zIndex: 1 }}>
           <div style={{ width: 72, height: 72, borderRadius: avatarRadius, border: '3px solid white', overflow: 'hidden', background: 'var(--canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
             {profile.profilePhoto && !avatarError
-              ? <img src={profile.profilePhoto} alt="" onError={() => setAvatarError(true)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : <img src="/logo.png" alt="" style={{ width: 46, height: 46, objectFit: 'contain', opacity: 0.35 }} />}
+              ? <Image src={profile.profilePhoto} alt="" width={72} height={72} onError={() => setAvatarError(true)} style={{ objectFit: 'cover', borderRadius: avatarRadius }} />
+              : <Image src="/logo.png" alt="" width={46} height={46} style={{ objectFit: 'contain', opacity: 0.35 }} />}
           </div>
         </div>
 
@@ -752,7 +753,7 @@ export default function ProfileDetailClientPage() {
                       <Link href={`/market/${p.id}`} style={{ display: 'block', textDecoration: 'none' }}>
                         <div style={{ aspectRatio: '1', overflow: 'hidden', position: 'relative', background: 'var(--canvas)' }}>
                           {p.images?.[0] ? (
-                            <img src={p.images[0]} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <Image src={p.images[0]} alt={p.name} fill style={{ objectFit: 'cover' }} />
                           ) : (
                             <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <Package size={32} style={{ color: 'var(--border)' }} />
@@ -1049,10 +1050,12 @@ export default function ProfileDetailClientPage() {
                           { name: 'Amazon Pay', src: '/upi/amazonpay.svg' },
                         ].map(app => (
                           <div key={app.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
-                            <img
+                            <Image
                               src={app.src}
                               alt={app.name}
-                              style={{ width: 44, height: 44, borderRadius: 12, boxShadow: '0 1px 6px rgba(0,0,0,0.10)' }}
+                              width={44}
+                              height={44}
+                              style={{ borderRadius: 12, boxShadow: '0 1px 6px rgba(0,0,0,0.10)' }}
                             />
                             <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>{app.name}</span>
                           </div>
@@ -1134,7 +1137,7 @@ export default function ProfileDetailClientPage() {
                     <div key={p.id} className="card" style={{ padding: '14px 16px' }}>
                       {imgs.length > 0 && (
                         <div style={{ borderRadius: 10, overflow: 'hidden', marginBottom: 10 }}>
-                          <img src={imgs[0]} alt="" style={{ width: '100%', objectFit: 'cover', maxHeight: 300, display: 'block' }} />
+                          <Image src={imgs[0]} alt="" width={600} height={300} style={{ width: '100%', height: 'auto', objectFit: 'cover', maxHeight: 300, display: 'block' }} />
                         </div>
                       )}
                       {text && <p style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>{text}</p>}
@@ -1159,8 +1162,8 @@ export default function ProfileDetailClientPage() {
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
                 {posts.flatMap((p) => (p.mediaUrls ?? p.images ?? [])).map((img, idx) => (
-                  <div key={idx} style={{ aspectRatio: '1', overflow: 'hidden' }}>
-                    <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  <div key={idx} style={{ aspectRatio: '1', overflow: 'hidden', position: 'relative' }}>
+                    <Image src={img} alt="" fill style={{ objectFit: 'cover' }} />
                   </div>
                 ))}
               </div>
@@ -1232,7 +1235,7 @@ export default function ProfileDetailClientPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--primary-light)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             {author?.profilePhoto
-                              ? <img src={resolveImg(author.profilePhoto)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ? <Image src={resolveImg(author.profilePhoto)!} alt="" width={40} height={40} style={{ objectFit: 'cover', borderRadius: '50%' }} />
                               : <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--primary)' }}>{(author?.fullname?.[0] ?? '?').toUpperCase()}</span>}
                           </div>
                           <div>
@@ -1246,7 +1249,7 @@ export default function ProfileDetailClientPage() {
                       {(r.images?.length ?? 0) > 0 && (
                         <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                           {r.images!.map((img, idx) => (
-                            <img key={idx} src={img} alt="" style={{ width: 72, height: 72, borderRadius: 8, objectFit: 'cover' }} />
+                            <Image key={idx} src={img} alt="" width={72} height={72} style={{ borderRadius: 8, objectFit: 'cover' }} />
                           ))}
                         </div>
                       )}
@@ -1307,7 +1310,7 @@ export default function ProfileDetailClientPage() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   {/* Gaubook logo */}
-                  <img src="/logo.png" alt="Gaubook" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+                  <Image src="/logo.png" alt="Gaubook" width={28} height={28} style={{ objectFit: 'contain' }} />
                   <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>{labels.title}</span>
                 </div>
                 {/* Hindi / English toggle */}
@@ -1339,7 +1342,7 @@ export default function ProfileDetailClientPage() {
 
               {/* QR card */}
               <div style={{ background: '#fff', borderRadius: 16, padding: '20px 16px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 20, border: '1px solid var(--border)' }}>
-                <img src="/logo.png" alt="Gaubook" style={{ width: 30, height: 30, objectFit: 'contain' }} />
+                <Image src="/logo.png" alt="Gaubook" width={30} height={30} style={{ objectFit: 'contain' }} />
                 <QRCode value={qrUrl} size={140} bgColor="#ffffff" fgColor="#1a0a00" style={{ borderRadius: 8 }} />
                 <p style={{ fontSize: 13, fontWeight: 700, color: '#1a0a00', textAlign: 'center', margin: 0 }}>{displayName}</p>
                 <p style={{ fontSize: 11, color: '#7B4A1E', margin: 0 }}>{shareQrType === 'profile' ? labels.profileLink : labels.storeLink}</p>
