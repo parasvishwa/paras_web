@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Calendar, MapPin, Users, Phone, ExternalLink, ArrowLeft, Ticket, ChevronRight } from 'lucide-react';
 import { eventsApi } from '@/lib/api';
+import toast from 'react-hot-toast';
 import { AppGateModal } from '@/components/AppGate';
 import { isLoggedIn } from '@/lib/auth';
 
@@ -72,7 +73,7 @@ export default function EventDetailPage() {
       const raw = res.data;
       const e = raw?.data?.event ?? raw?.event ?? raw?.data ?? raw;
       if (e?.id) setEvent(e);
-    }).catch(() => {}).finally(() => setLoading(false));
+    }).catch(() => { toast.error('Failed to load event details.'); }).finally(() => setLoading(false));
   }, [id]);
 
   if (loading) {

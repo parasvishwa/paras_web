@@ -10,7 +10,7 @@ import { isLoggedIn } from '@/lib/auth';
 import { AppGateModal } from '@/components/AppGate';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
-const BACKEND = 'https://app.gaubook.org';
+const BACKEND = process.env.NEXT_PUBLIC_API_URL ?? 'https://app.gaubook.org';
 function resolveImg(url?: string | null): string | undefined {
   if (!url) return undefined;
   if (url.startsWith('http')) return url;
@@ -736,7 +736,7 @@ export default function HomePage() {
       else if (Array.isArray(raw?.posts)) list = raw.posts;
       setPosts((prev) => (replace ? list : [...prev, ...list]));
       setHasMore(list.length === 20);
-    } catch { setHasMore(false); }
+    } catch { setHasMore(false); toast.error('Failed to load feed. Pull down to retry.'); }
     finally { setLoading(false); setLoadingMore(false); }
   }, []);
 

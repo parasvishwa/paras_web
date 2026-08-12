@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { marketApi } from '@/lib/api';
+import toast from 'react-hot-toast';
 import {
   Search, ChevronLeft, ChevronRight,
   Package, X, Store, Plus, SlidersHorizontal, MapPin, Navigation,
@@ -83,7 +84,7 @@ interface Product {
 
 /* ─── Helpers ────────────────────────────────────────────────────────────── */
 
-const BACKEND = 'https://app.gaubook.org';
+const BACKEND = process.env.NEXT_PUBLIC_API_URL ?? 'https://app.gaubook.org';
 function resolveImg(url?: string | null): string {
   if (!url) return '';
   if (url.startsWith('http')) return url;
@@ -352,17 +353,7 @@ export default function MarketPage() {
   const [nearMeEnabled, setNearMeEnabled] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setNearMeEnabled(true);
-      },
-      () => {},
-      { timeout: 8000 },
-    );
-  }, []);
+  // Geolocation is requested only when the user clicks "Near Me" — not on mount.
 
   /* bootstrap */
   useEffect(() => {
@@ -420,6 +411,7 @@ export default function MarketPage() {
       setTotalItems(payload.totalItems ?? payload.total ?? payload.count ?? list.length);
     } catch {
       setProducts([]);
+      toast.error('Failed to load products. Try again.');
     } finally {
       setLoading(false);
     }

@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import toast from 'react-hot-toast';
-import { exploreApi, marketApi, apiV1, reviewsApi } from '@/lib/api';
+import { exploreApi, marketApi, apiV1, apiV2, reviewsApi } from '@/lib/api';
 import { isLoggedIn } from '@/lib/auth';
 
 interface CowCensus {
@@ -209,7 +209,7 @@ function CowIcon(_props?: { size?: number }) {
   return <span style={{ fontSize: 16, lineHeight: 1 }}>🐄</span>;
 }
 
-const BACKEND = 'https://app.gaubook.org';
+const BACKEND = process.env.NEXT_PUBLIC_API_URL ?? 'https://app.gaubook.org';
 function resolveImg(url?: string | null): string | undefined {
   if (!url) return undefined;
   if (url.startsWith('http')) return url;
@@ -451,7 +451,7 @@ export default function ProfileDetailClientPage() {
     if (!id || activeTab !== 'Posts') return;
     if (posts.length > 0) return;
     setPostsLoading(true);
-    apiV1.get('/posts', { params: { userId: id, limit: 50 } })
+    apiV2.get('/posts', { params: { userId: id, limit: 50 } })
       .then((res) => {
         const data = res.data?.data ?? res.data ?? [];
         const all: Post[] = Array.isArray(data) ? data : (Array.isArray(data.posts) ? data.posts : []);
@@ -1263,8 +1263,9 @@ export default function ProfileDetailClientPage() {
 
       {/* ── Share Modal ── */}
       {showShareModal && profile && (() => {
-        const profileUrl = `https://gaubook.org/gaushala/${id}`;
-        const storeUrl = `https://gaubook.org/gaushala/${id}?tab=store`;
+        const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://gaubook.org';
+        const profileUrl = `${SITE_URL}/gaushala/${id}`;
+        const storeUrl = `${SITE_URL}/gaushala/${id}?tab=store`;
         const qrUrl = shareQrType === 'store' ? storeUrl : profileUrl;
         const displayName = profile.businessName || profile.fullname || '';
         const hasStore = (products.length > 0);

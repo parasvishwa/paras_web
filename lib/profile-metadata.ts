@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 
-const API = 'https://app.gaubook.org/api/v1';
+const BACKEND = process.env.NEXT_PUBLIC_API_URL ?? 'https://app.gaubook.org';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://gaubook.org';
+const API = `${BACKEND}/api/v1`;
 
 function resolveImg(url?: string | null): string | undefined {
   if (!url) return undefined;
   if (url.startsWith('http')) return url;
-  if (url.startsWith('/')) return `https://app.gaubook.org${url}`;
+  if (url.startsWith('/')) return `${BACKEND}${url}`;
   return url;
 }
 
@@ -32,7 +34,7 @@ async function fetchProfile(id: string) {
 export async function generateUserMetadata(id: string): Promise<Metadata> {
   const base = await generateProfileMetadata(id);
   if (base.openGraph && typeof base.openGraph === 'object') {
-    (base.openGraph as Record<string, unknown>).url = `https://app.gaubook.org/profile/${id}`;
+    (base.openGraph as Record<string, unknown>).url = `${SITE_URL}/profile/${id}`;
   }
   return base;
 }
@@ -73,7 +75,7 @@ export async function generateProfileMetadata(id: string): Promise<Metadata> {
 
   const image = resolveImg(rawPhoto) || resolveCover(rawCover);
 
-  const pageUrl = `https://app.gaubook.org/gaushala/${id}`;
+  const pageUrl = `${SITE_URL}/gaushala/${id}`;
 
   return {
     title: `${name} | Gaubook`,

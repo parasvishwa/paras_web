@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { marketApi, ordersApi } from '@/lib/api';
+import toast from 'react-hot-toast';
 import { getStoredUser } from '@/lib/auth';
 import { Package, ShoppingBag, IndianRupee, Clock, TrendingUp, AlertTriangle, Plus, ArrowRight } from 'lucide-react';
 
@@ -40,7 +41,7 @@ export default function SellerDashboardPage() {
         const total = prodData?.total ?? (Array.isArray(prodData) ? prodData.length : 0);
         setProductCount(typeof total === 'number' ? total : 0);
       })
-      .catch(() => {})
+      .catch(() => { toast.error('Failed to load dashboard data.'); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -48,7 +49,7 @@ export default function SellerDashboardPage() {
   const pending = allItems.filter((it) => it.status === 'Pending').length;
   const inProgress = allItems.filter((it) => it.status === 'In Progress').length;
   const revenue = allItems
-    .filter((it) => it.status === 'Completed')
+    .filter((it) => it.status.toLowerCase() === 'completed')
     .reduce((sum, it) => sum + (parseFloat(it.price) || 0) * (it.quantity || 1), 0);
 
   const recentOrders = orders.slice(0, 5);

@@ -7,6 +7,7 @@ import {
   Home, Store, UserCheck, Users, SlidersHorizontal, ShieldCheck, Navigation, X,
 } from 'lucide-react';
 import { exploreApi } from '@/lib/api';
+import toast from 'react-hot-toast';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
 interface UserCard {
@@ -288,17 +289,7 @@ export default function ExplorePage() {
   const config = ROLE_CONFIG[activeRole];
   const hasFilters = !!(stateFilter || badgeFilter || nearMeActive);
 
-  useEffect(() => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setNearMeActive(true);
-      },
-      () => {},
-      { timeout: 8000 },
-    );
-  }, []);
+  // Geolocation is requested only when the user clicks "Near Me" — not on mount.
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 400);
@@ -342,6 +333,7 @@ export default function ExplorePage() {
       setTotalPages(tp);
     } catch {
       setUsers([]);
+      toast.error('Failed to load explore. Try again.');
     } finally {
       setLoading(false);
     }

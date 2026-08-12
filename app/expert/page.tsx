@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { expertApi } from '@/lib/api';
+import toast from 'react-hot-toast';
 import { Search, Star, MapPin, Users, ChevronLeft, ChevronRight, X, BadgeCheck } from 'lucide-react';
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
@@ -36,7 +37,7 @@ interface Banner {
 
 /* ─── Helpers ────────────────────────────────────────────────────────────── */
 
-const BACKEND = 'https://app.gaubook.org';
+const BACKEND = process.env.NEXT_PUBLIC_API_URL ?? 'https://app.gaubook.org';
 function resolveImg(url?: string | null): string {
   if (!url) return '';
   if (url.startsWith('http')) return url;
@@ -254,6 +255,7 @@ export default function ExpertPage() {
       setTotalItems(inner?.total ?? inner?.totalItems ?? (Array.isArray(list) ? list.length : 0));
     } catch {
       setExperts([]);
+      toast.error('Failed to load experts. Try again.');
     }
     setLoading(false);
   }, [page, search]);

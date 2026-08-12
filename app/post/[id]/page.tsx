@@ -5,10 +5,11 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Heart, MessageCircle, Eye, Share2, Check, ChevronLeft, ChevronRight, X, ZoomIn } from 'lucide-react';
 import { feedApi } from '@/lib/api';
+import toast from 'react-hot-toast';
 import { AppGateModal } from '@/components/AppGate';
 import { isLoggedIn } from '@/lib/auth';
 
-const BACKEND = 'https://app.gaubook.org';
+const BACKEND = process.env.NEXT_PUBLIC_API_URL ?? 'https://app.gaubook.org';
 
 function resolveImg(url?: string | null): string | undefined {
   if (!url) return undefined;
@@ -201,6 +202,15 @@ function ImageCarousel({ images }: { images: string[] }) {
   );
 }
 
+function getProfilePath(user?: PostAuthor): string {
+  if (!user) return '/';
+  const role = (Array.isArray(user.role) ? user.role[0] : user.role)?.toString().toLowerCase() ?? '';
+  if (role.includes('gaushala') || role.includes('ngo')) return `/gaushala/${user.id}`;
+  if (role.includes('vendor')) return `/gaushala/${user.id}`;
+  if (role.includes('expert')) return `/expert/${user.id}`;
+  return `/profile/${user.id}`;
+}
+
 export default function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -208,6 +218,8 @@ export default function PostDetailPage() {
   const [loading, setLoading] = useState(true);
   const [appGate, setAppGate] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [postLikeCount, setPostLikeCount] = useState<number | null>(null);
   const loggedIn = isLoggedIn();
 
   useEffect(() => {
@@ -217,9 +229,23 @@ export default function PostDetailPage() {
         const raw = res.data?.data ?? res.data;
         if (raw?.id) setPost(raw);
       })
-      .catch(() => {})
+      .catch(() => { toast.error('Failed to load post.'); })
       .finally(() => setLoading(false));
   }, [id]);
+
+  const handleLike = async () => {
+    if (!post) return;
+    const wasLiked = liked;
+    const base = postLikeCount ?? post.likeCount ?? 0;
+    setLiked(!wasLiked);
+    setPostLikeCount(base + (wasLiked ? -1 : 1));
+    try {
+      await feedApi.likePost(post.id);
+    } catch {
+      setLiked(wasLiked);
+      setPostLikeCount(base);
+    }
+  };
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -277,7 +303,7 @@ export default function PostDetailPage() {
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 0 16px' }}>
         {/* Author row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 10px' }}>
-          <Link href={`/gaushala/${post.user?.id}`} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Link href={getProfilePath(post.user)} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 42, height: 42, borderRadius: '50%', overflow: 'hidden', background: 'var(--primary-tint, #f0faf5)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--border)' }}>
               {authorPhoto
                 ? <img src={resolveImg(authorPhoto)} alt={authorName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -303,8 +329,8 @@ export default function PostDetailPage() {
 
         {/* Stats row */}
         <div style={{ display: 'flex', gap: 20, padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-          <button onClick={() => loggedIn ? undefined : setAppGate(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>
-            <Heart size={17} /> {post.likeCount ?? 0}
+          <button onClick={loggedIn ? handleLike : () => setAppGate(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', color: liked ? '#E53935' : 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>
+            <Heart size={17} fill={liked ? '#E53935' : 'none'} /> {postLikeCount ?? post.likeCount ?? 0}
           </button>
           <button onClick={() => setAppGate(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>
             <MessageCircle size={17} /> {post.commentCount ?? 0}
@@ -335,7 +361,7 @@ export default function PostDetailPage() {
         {post.user?.id && (
           <div style={{ padding: '0 16px' }}>
             <Link
-              href={`/gaushala/${post.user.id}`}
+              href={getProfilePath(post.user)}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', borderRadius: 12, border: '1px solid var(--border)', textDecoration: 'none', color: 'var(--primary)', fontWeight: 700, fontSize: 14 }}
             >
               View {authorName}&apos;s profile

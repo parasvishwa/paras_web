@@ -171,7 +171,7 @@ export default function GaushalaRegisterPage() {
         // Store form data and redirect to login with returnUrl
         sessionStorage.setItem('gaushala_reg_draft', JSON.stringify(form));
         toast('Please log in or create an account to complete registration', { icon: 'ℹ️' });
-        router.push('/login?returnUrl=/gaushala/register');
+        router.push('/login?next=/gaushala/register');
       }
       setSubmitted(true);
     } catch (err: unknown) {
@@ -400,7 +400,7 @@ export default function GaushalaRegisterPage() {
               <div style={{ marginTop: 20, padding: '14px 16px', background: '#FFF3E0', borderRadius: 12, border: '1.5px solid #FFB74D' }}>
                 <p style={{ fontSize: 13, fontWeight: 700, color: '#E65100', marginBottom: 4 }}>Login required to submit</p>
                 <p style={{ fontSize: 12, color: '#BF360C', lineHeight: 1.5 }}>
-                  Your progress is saved. Please <Link href="/login?returnUrl=/gaushala/register" style={{ color: 'var(--primary)', fontWeight: 700 }}>log in</Link> or{' '}
+                  Your progress is saved. Please <Link href="/login?next=/gaushala/register" style={{ color: 'var(--primary)', fontWeight: 700 }}>log in</Link> or{' '}
                   <Link href="/register" style={{ color: 'var(--primary)', fontWeight: 700 }}>create an account</Link> with role &quot;Gaushala&quot; to complete your registration.
                 </p>
               </div>
