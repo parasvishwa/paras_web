@@ -13,6 +13,7 @@ import QRCode from 'react-qr-code';
 import toast from 'react-hot-toast';
 import { exploreApi, marketApi, apiV1, apiV2, reviewsApi } from '@/lib/api';
 import { isLoggedIn } from '@/lib/auth';
+import { GaushalaPdfButton } from './_pdf_button';
 
 interface CowCensus {
   nandi?: number;
@@ -97,6 +98,9 @@ interface ProfileDetail {
   accountHolderName?: string;
   accountNo?: string;
   ifsc?: string;
+  branch?: string;
+  accountType?: string;
+  certificate80GNumber?: string;
   // Social (shared)
   socialLinks?: SocialLinks;
   phone?: string;
@@ -389,6 +393,9 @@ export default function ProfileDetailClientPage() {
             accountHolderName: g.accountHolderName ?? merged.accountHolderName,
             accountNo: g.accountNumber ?? g.accountNo ?? merged.accountNo,
             ifsc: g.ifsc ?? merged.ifsc,
+            branch: g.branch ?? merged.branch,
+            accountType: g.accountType ?? merged.accountType,
+            certificate80GNumber: g.certificate80GNumber ?? merged.certificate80GNumber,
             whatsapp: g.whatsapp1 ?? g.whatsapp ?? merged.whatsapp,
             website: g.website ?? merged.website,
             facebook: g.facebookUrl ?? g.facebook ?? merged.facebook,
@@ -703,6 +710,45 @@ export default function ProfileDetailClientPage() {
             <button onClick={handleShare} className="btn-outline" style={{ fontSize: 14, padding: '10px 14px' }} title="Share">
               <Share2 size={16} />
             </button>
+            {profile && (
+              <GaushalaPdfButton
+                userId={profile.id}
+                profile={{
+                  businessName: profile.businessName,
+                  fullname: profile.fullname,
+                  legalStatus: profile.legalStatus,
+                  establishedYear: profile.establishedYear,
+                  city: profile.city,
+                  district: profile.district,
+                  state: profile.state,
+                  description: profile.description,
+                  mobile: profile.mobile,
+                  email: profile.email,
+                  website: profile.website,
+                  whatsapp: profile.whatsapp,
+                  visitTiming: profile.visitTiming,
+                  provides80G: profile.provides80G,
+                  has12A: profile.has12A,
+                  darpanNo: profile.darpanNo,
+                  pan: profile.pan,
+                  trustRegNo: profile.trustRegNo,
+                  certificate80GNumber: profile.certificate80GNumber,
+                  branch: profile.branch,
+                  accountType: profile.accountType,
+                  cowCensus: profile.cowCensus,
+                  bankName: profile.bankName,
+                  accountHolderName: profile.accountHolderName,
+                  accountNo: profile.accountNo,
+                  ifsc: profile.ifsc,
+                  upiId: profile.upiId,
+                  upiMerchantName: profile.upiMerchantName,
+                  facebook: profile.facebook,
+                  instagram: profile.instagram,
+                  youtube: profile.youtube,
+                  twitter: profile.twitter,
+                }}
+              />
+            )}
           </div>
         </div>
 
