@@ -49,6 +49,7 @@ interface Category {
   name?: string;
   value?: string;
   icon?: string;
+  isActive?: boolean;
 }
 
 interface SubCategory {
@@ -56,6 +57,7 @@ interface SubCategory {
   value: string;
   parentId?: string | null;
   imageUrl?: string | null;
+  isActive?: boolean;
 }
 
 interface Product {
@@ -373,10 +375,10 @@ export default function MarketPageClient() {
           : Array.isArray(raw.categories)     ? raw.categories
           : Array.isArray(raw)                ? raw
           : [];
-        setCategories(cats.slice(0, 32));
+        setCategories(cats.filter(c => c.isActive !== false).slice(0, 32));
 
         const subs: SubCategory[] = Array.isArray(raw.product_subcategory)
-          ? raw.product_subcategory
+          ? raw.product_subcategory.filter((s: SubCategory) => s.isActive !== false)
           : [];
         setSubCategories(subs);
       }).catch(() => {});
