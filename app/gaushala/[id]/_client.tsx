@@ -14,6 +14,7 @@ import toast from 'react-hot-toast';
 import { exploreApi, marketApi, apiV1, apiV2, reviewsApi } from '@/lib/api';
 import { isLoggedIn } from '@/lib/auth';
 import { GaushalaPdfButton } from './_pdf_button';
+import { VendorPdfButton } from './_vendor_pdf_button';
 
 interface CowCensus {
   nandi?: number;
@@ -710,7 +711,52 @@ export default function ProfileDetailClientPage() {
             <button onClick={handleShare} className="btn-outline" style={{ fontSize: 14, padding: '10px 14px' }} title="Share">
               <Share2 size={16} />
             </button>
-            {profile && (
+            {profile && profile.role === 'Vendor' && (
+              <VendorPdfButton
+                userId={profile.id}
+                profile={{
+                  businessName: profile.businessName,
+                  fullname: profile.fullname,
+                  role: profile.role,
+                  designation: profile.designation,
+                  establishedYear: profile.establishedYear,
+                  city: profile.city,
+                  district: profile.district,
+                  state: profile.state,
+                  address: profile.address,
+                  description: profile.description,
+                  mobile: profile.mobile,
+                  email: profile.email,
+                  website: profile.website,
+                  whatsapp: profile.whatsapp,
+                  primaryCategories: profile.primaryCategories,
+                  productsAndServices: profile.productsAndServices,
+                  moq: profile.moq,
+                  deliveryOptions: profile.deliveryOptions,
+                  returnPolicy: profile.returnPolicy,
+                  paymentTermsText: profile.paymentTermsText,
+                  gstin: profile.gstin,
+                  pan: profile.pan,
+                  fssai: profile.fssai,
+                  drugLicense: profile.drugLicense,
+                  tradeLicense: profile.tradeLicense,
+                  msme: profile.msme,
+                  upiId: profile.upiId,
+                  upiMerchantName: profile.upiMerchantName,
+                  bankName: profile.bankName,
+                  accountHolderName: profile.accountHolderName,
+                  accountNo: profile.accountNo,
+                  ifsc: profile.ifsc,
+                  branch: profile.branch,
+                  accountType: profile.accountType,
+                  facebook: profile.facebook,
+                  instagram: profile.instagram,
+                  youtube: profile.youtube,
+                  twitter: profile.twitter,
+                }}
+              />
+            )}
+            {profile && profile.role !== 'Vendor' && (
               <GaushalaPdfButton
                 userId={profile.id}
                 profile={{
