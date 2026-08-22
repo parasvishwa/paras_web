@@ -134,6 +134,13 @@ export const notifApi = {
   getAll: (page = 1) => apiV1.get('/notifications', { params: { page, limit: 20 } }),
   markRead: (ids: string[]) => apiV1.post('/notifications/mark-as-read', { ids }),
   getUnreadCount: () => apiV1.get('/notifications/unread-count'),
+  sendToFollowers: (data: { type: string; title: string; message: string; productId?: string }) =>
+    apiV1.post('/notifications/send-to-followers', data),
+};
+
+// ── Config ────────────────────────────────────────────────────────────────────
+export const configApi = {
+  getNotificationTexts: () => apiV1.get('/config/notification-texts'),
 };
 
 // ── Events ────────────────────────────────────────────────────────────────────

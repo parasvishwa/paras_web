@@ -3,12 +3,12 @@
 import { useState, useEffect, useRef, useCallback, DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { marketApi } from '@/lib/api';
+import { marketApi, notifApi, configApi } from '@/lib/api';
 import { isLoggedIn, getStoredUser } from '@/lib/auth';
 import toast from 'react-hot-toast';
 import {
   Upload, X, ChevronLeft, ChevronRight, Check,
-  ImagePlus, Package, Tag, Layers, Loader2,
+  ImagePlus, Package, Tag, Layers, Loader2, Bell,
 } from 'lucide-react';
 
 interface Category {
@@ -33,6 +33,10 @@ export default function NewProductPage() {
   const [step, setStep] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
+  const [notifyTitle, setNotifyTitle] = useState('');
+  const [notifyMessage, setNotifyMessage] = useState('');
+  const [notifySending, setNotifySending] = useState(false);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -121,13 +125,45 @@ export default function NewProductPage() {
       images.forEach((img) => fd.append('images', img));
       await marketApi.createProduct(fd);
       toast.success('Product listed!');
-      router.push('/seller/products');
+
+      // Fetch notification template and show the notify modal
+      try {
+        const res = await configApi.getNotificationTexts();
+        const texts = res.data?.data ?? {};
+        const productTexts = texts?.product?.en ?? {};
+        setNotifyTitle(productTexts.title ?? 'New product available!');
+        setNotifyMessage(productTexts.message ?? 'Check out our latest product on Gaubook.');
+      } catch {
+        setNotifyTitle('New product available!');
+        setNotifyMessage('Check out our latest product on Gaubook.');
+      }
+      setShowNotifyModal(true);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed. Please try again.';
       toast.error(msg);
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleNotifyFollowers = async () => {
+    setNotifySending(true);
+    try {
+      await notifApi.sendToFollowers({ type: 'product', title: notifyTitle, message: notifyMessage });
+      toast.success('Followers notified!');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Could not send notification.';
+      toast.error(msg);
+    } finally {
+      setNotifySending(false);
+      setShowNotifyModal(false);
+      router.push('/seller/products');
+    }
+  };
+
+  const handleSkipNotify = () => {
+    setShowNotifyModal(false);
+    router.push('/seller/products');
   };
 
   const goNext = () => {
@@ -137,6 +173,96 @@ export default function NewProductPage() {
   const goPrev = () => { if (step > 0) setStep((s) => s - 1); };
 
   return (
+    <>
+    {showNotifyModal && (
+      <div
+        style={{
+          position: 'fixed', inset: 0, zIndex: 50,
+          background: 'rgba(0,0,0,0.45)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+        }}
+        onClick={handleSkipNotify}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            background: 'var(--surface)',
+            borderRadius: '20px 20px 0 0',
+            padding: '24px 20px 32px',
+            width: '100%',
+            maxWidth: 480,
+          }}
+        >
+          {/* Handle */}
+          <div style={{ width: 44, height: 4, borderRadius: 99, background: 'var(--border)', margin: '0 auto 20px' }} />
+
+          {/* Bell icon */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+            <div style={{
+              width: 52, height: 52, borderRadius: '50%',
+              background: 'var(--primary-light)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Bell size={24} style={{ color: 'var(--primary)' }} />
+            </div>
+          </div>
+
+          <h3 style={{ textAlign: 'center', fontWeight: 800, fontSize: 17, color: 'var(--text)', marginBottom: 6 }}>
+            Notify your followers
+          </h3>
+          <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
+            Let your followers know about this new product.
+          </p>
+
+          {/* Template preview */}
+          {(notifyTitle || notifyMessage) && (
+            <div style={{
+              border: '1px solid var(--border)',
+              borderRadius: 12,
+              padding: '10px 14px',
+              background: 'var(--canvas)',
+              marginBottom: 20,
+            }}>
+              {notifyTitle && (
+                <p style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)', margin: 0 }}>{notifyTitle}</p>
+              )}
+              {notifyMessage && (
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0' }}>{notifyMessage}</p>
+              )}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              onClick={handleSkipNotify}
+              disabled={notifySending}
+              style={{
+                flex: 1, padding: '13px 0', borderRadius: 12,
+                border: '1.5px solid var(--border)',
+                background: 'transparent', color: 'var(--text-muted)',
+                fontWeight: 600, fontSize: 14, cursor: 'pointer',
+              }}
+            >
+              Skip
+            </button>
+            <button
+              onClick={handleNotifyFollowers}
+              disabled={notifySending}
+              style={{
+                flex: 1, padding: '13px 0', borderRadius: 12,
+                background: 'var(--primary)', color: 'white',
+                border: 'none', fontWeight: 700, fontSize: 14,
+                cursor: notifySending ? 'not-allowed' : 'pointer',
+                opacity: notifySending ? 0.7 : 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              }}
+            >
+              {notifySending ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Sending…</> : 'Notify Now'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     <div className="max-w-xl mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold" style={{ color: 'var(--text)' }}>List a Product</h1>
@@ -332,5 +458,6 @@ export default function NewProductPage() {
         </button>
       </div>
     </div>
+    </>
   );
 }
