@@ -141,6 +141,7 @@ export const notifApi = {
 // ── Config ────────────────────────────────────────────────────────────────────
 export const configApi = {
   getNotificationTexts: () => apiV1.get('/config/notification-texts'),
+  getSplash: () => apiV1.get('/config/splash'),
 };
 
 // ── Events ────────────────────────────────────────────────────────────────────
