@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /login
+Disallow: /register
+Disallow: /seller/
+Disallow: /profile
+Disallow: /rescue/new
+Disallow: /products/new
+Disallow: /products/*/edit
+
+Sitemap: https://www.gaubook.org/sitemap.xml

@@ -1,2 +1,4 @@
-// Vendor profile — reuses gaushala layout for SSR metadata / OG tags
-export { generateMetadata, default } from '@/app/gaushala/[id]/layout';
+// Vendor profile — SSR metadata + JSON-LD with /vendor/ canonical URL
+export { generateMetadata } from '@/app/gaushala/[id]/layout';
+import { createProfileLayout } from '@/lib/profile-layout-factory';
+export default createProfileLayout('vendor');

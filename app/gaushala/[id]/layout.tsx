@@ -101,6 +101,5 @@ export async function generateMetadata(
   };
 }
 
-export default function GaushalaLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
-}
+import { createProfileLayout } from '@/lib/profile-layout-factory';
+export default createProfileLayout('gaushala');

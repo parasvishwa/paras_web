@@ -67,6 +67,46 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function MarketLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+export default async function MarketLayout({ children, params }: Props) {
+  const { id } = await params;
+  const product = await fetchProduct(id);
+
+  let jsonLd: Record<string, unknown> | null = null;
+  if (product) {
+    const name: string = product.name ?? 'Gaubook Product';
+    const price = product.discountPrice ?? product.price;
+    const image = resolveImg(product.imageUrl as string | undefined);
+    const seller = (product.user as Record<string, unknown> | undefined);
+    const sellerName = (seller?.fullname ?? seller?.businessName ?? 'Gaubook') as string;
+
+    jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name,
+      ...(product.description ? { description: (product.description as string).slice(0, 5000) } : {}),
+      ...(image ? { image } : {}),
+      ...(product.category ? { category: product.category } : {}),
+      brand: { '@type': 'Brand', name: sellerName },
+      offers: {
+        '@type': 'Offer',
+        priceCurrency: 'INR',
+        price: price ? String(Math.round(Number(price))) : undefined,
+        availability: 'https://schema.org/InStock',
+        url: `https://www.gaubook.org/market/${id}`,
+        seller: { '@type': 'Organization', name: sellerName },
+      },
+    };
+  }
+
+  return (
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+      {children}
+    </>
+  );
 }

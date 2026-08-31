@@ -1,2 +1,4 @@
-// Expert profile — reuses gaushala layout for SSR metadata / OG tags
-export { generateMetadata, default } from '@/app/gaushala/[id]/layout';
+// Expert profile — SSR metadata + JSON-LD with /expert/ canonical URL
+export { generateMetadata } from '@/app/gaushala/[id]/layout';
+import { createProfileLayout } from '@/lib/profile-layout-factory';
+export default createProfileLayout('expert');
