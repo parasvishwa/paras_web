@@ -501,16 +501,21 @@ export default function MarketPageClient() {
       {/* ── Body: sidebar + content ── */}
       <div style={{ display: 'flex', gap: 0, padding: '12px 0 0' }}>
 
-        {/* Sub-category sidebar */}
-        {subCategories.length > 0 && (
-          <div style={{ padding: '0 0 0 8px', flexShrink: 0 }}>
-            <SubCatSidebar
-              subCategories={subCategories}
-              selectedSubCat={selectedSubCat}
-              onSelect={selectSubCat}
-            />
-          </div>
-        )}
+        {/* Sub-category sidebar — only when a parent category is active */}
+        {(() => {
+          const filtered = selectedCat
+            ? subCategories.filter((s) => s.parentId === selectedCat)
+            : [];
+          return filtered.length > 0 ? (
+            <div style={{ padding: '0 0 0 8px', flexShrink: 0 }}>
+              <SubCatSidebar
+                subCategories={filtered}
+                selectedSubCat={selectedSubCat}
+                onSelect={selectSubCat}
+              />
+            </div>
+          ) : null;
+        })()}
 
         {/* Main content */}
         <div style={{ flex: 1, minWidth: 0, padding: '0 8px' }}>

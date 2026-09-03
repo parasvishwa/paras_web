@@ -607,7 +607,7 @@ function PostCard({ post, isLiked, likeCount, onLike, onInteract }: {
           <div style={{ flex: 1, minWidth: 0 }}>
             {/* Username + role inline */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-              <span style={{ fontWeight: 500, fontSize: 11.5, color: 'var(--text)', textTransform: 'capitalize', letterSpacing: '-0.1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
+              <span style={{ fontWeight: 500, fontSize: 11.5, color: 'var(--text)', textTransform: 'capitalize', letterSpacing: '-0.1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {(author?.fullname ?? 'Gaubook User').toLowerCase()}
               </span>
               {role && (
