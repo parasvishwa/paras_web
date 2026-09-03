@@ -725,12 +725,14 @@ export default function HomePage() {
   }, [loggedIn, likedPosts]);
 
   useEffect(() => {
-    rescueApi.getAll({ page: 1, limit: 1 }).then((res) => {
+    rescueApi.getAll({ page: 1, limit: 5 }).then((res) => {
       const raw = res.data;
       const list = Array.isArray(raw?.data?.reports) ? raw.data.reports
         : Array.isArray(raw?.data) ? raw.data
         : Array.isArray(raw) ? raw : [];
-      if (list.length > 0) setLatestRescue(list[0]);
+      const CLOSED = ['rescued', 'resolved', 'closed', 'completed', 'done'];
+      const active = list.find((r: RescueAlert) => !CLOSED.includes((r.status ?? '').toLowerCase()));
+      if (active) setLatestRescue(active);
     }).catch(() => {});
   }, []);
 
