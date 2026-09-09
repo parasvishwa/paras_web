@@ -40,7 +40,7 @@ export const authApi = {
     apiV1.post('/auth/user/infobip/verify-otp', { mobile, otp, pinId }),
   signup: (data: Record<string, unknown>) => apiV1.post('/auth/user/signup', data),
   updateRole: (role: string) => apiV1.put('/user/profile/role', { role }),
-  socialSignup: (data: Record<string, unknown>) =>
+  socialSignup: (data: FormData | Record<string, unknown>) =>
     apiV1.post('/auth/user/social-signup', data),
 };
 
@@ -56,7 +56,7 @@ export const feedApi = {
   getPosts: (page = 1, limit = 10, type?: string) =>
     apiV2.get('/posts', { params: { page, limit, type } }),
   getMyPosts: (page = 1, limit = 10, userId?: string) =>
-    apiV1.get('/posts', { params: { page, limit, ...(userId ? { userId } : {}) } }),
+    apiV2.get('/posts', { params: { page, limit, ...(userId ? { userId } : {}) } }),
   createPost: (data: FormData) => apiV2.post('/posts', data),
   likePost: (postId: string) => apiV1.post(`/posts/${postId}/like`),
   addComment: (postId: string, comment: string) =>
@@ -123,8 +123,8 @@ export const rescueApi = {
 // ── Orders ────────────────────────────────────────────────────────────────────
 export const ordersApi = {
   getMyOrders: (page = 1) => apiV1.get('/orders', { params: { page } }),
-  getVendorOrders: (page = 1) =>
-    apiV1.get('/orders/vendor', { params: { page } }),
+  getVendorOrders: (page = 1, status?: string) =>
+    apiV1.get('/orders/vendor', { params: { page, ...(status ? { status } : {}) } }),
   updateItemStatus: (itemId: string, status: string) =>
     apiV1.put(`/orders/items/${itemId}/status`, { status }),
 };

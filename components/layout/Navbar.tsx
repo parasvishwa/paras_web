@@ -47,7 +47,9 @@ export default function Navbar() {
         const items = json?.data ?? json?.posts ?? json?.items ?? [];
         if (Array.isArray(items) && items.length > 0) setShowRescue(true);
       })
-      .catch(() => {});
+      .catch(() => {
+        setShowRescue(true);
+      });
   }, []);
 
   // Show app banner on mobile devices
@@ -124,6 +126,7 @@ export default function Navbar() {
           </a>
           <button
             onClick={dismissBanner}
+            aria-label="Dismiss app download banner"
             style={{ color: '#aaa', padding: 4, background: 'none', border: 'none', cursor: 'pointer' }}
           >
             <X size={16} />
@@ -227,6 +230,7 @@ export default function Navbar() {
                 <div style={{ position: 'relative' }} ref={menuRef}>
                   <button
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    aria-label="Open user menu"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -239,7 +243,7 @@ export default function Navbar() {
                     }}
                   >
                     {user?.profilePhoto ? (
-                      <Image src={user.profilePhoto} alt="" width={34} height={34} style={{ borderRadius: '50%', objectFit: 'cover', border: '2.5px solid var(--primary)', outline: '1px solid var(--primary-light)', outlineOffset: 1 }} />
+                      <Image src={user.profilePhoto} alt={user.fullname ?? 'Profile photo'} width={34} height={34} style={{ borderRadius: '50%', objectFit: 'cover', border: '2.5px solid var(--primary)', outline: '1px solid var(--primary-light)', outlineOffset: 1 }} />
                     ) : (
                       <div
                         style={{
@@ -480,7 +484,7 @@ export default function Navbar() {
                   {user?.profilePhoto ? (
                     <Image
                       src={user.profilePhoto}
-                      alt=""
+                      alt={user?.fullname ?? 'Profile photo'}
                       width={22}
                       height={22}
                       style={{

@@ -97,7 +97,7 @@ function gaushalaSlugPath(u: UserCard) {
   return `/gaushala/${parts ? `${parts}-${u.id}` : u.id}`;
 }
 
-const BACKEND = 'https://app.gaubook.org';
+const BACKEND = process.env.NEXT_PUBLIC_API_BASE ?? 'https://app.gaubook.org';
 function resolveImg(url?: string | null): string | undefined {
   if (!url) return undefined;
   if (url.startsWith('http')) return url;

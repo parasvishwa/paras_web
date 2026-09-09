@@ -365,7 +365,9 @@ export default function MarketPageClient() {
       .then((res) => {
         const raw = res.data?.data ?? res.data ?? [];
         setBanners(Array.isArray(raw) ? raw : []);
-      }).catch(() => {});
+      }).catch(() => {
+        // Banners are decorative — silent failure is acceptable; grid still loads.
+      });
 
     marketApi.getCategories()
       .then((res) => {
@@ -381,7 +383,9 @@ export default function MarketPageClient() {
           ? raw.product_subcategory.filter((s: SubCategory) => s.isActive !== false)
           : [];
         setSubCategories(subs);
-      }).catch(() => {});
+      }).catch(() => {
+        toast.error('Could not load categories. Please refresh.');
+      });
   }, []);
 
   /* banner autoplay */
@@ -557,7 +561,9 @@ export default function MarketPageClient() {
                         setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
                         setNearMeEnabled(true);
                       },
-                      () => {},
+                      () => {
+                        toast.error('Location access denied. Enable location permissions to use Near Me.');
+                      },
                       { timeout: 8000 },
                     );
                   } else {

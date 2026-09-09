@@ -45,7 +45,8 @@ export default function SellerOrdersPage() {
   const fetchOrders = useCallback(async (p = 1) => {
     setLoading(true);
     try {
-      const res = await ordersApi.getVendorOrders(p);
+      const statusParam = filter === 'All' ? undefined : filter;
+      const res = await ordersApi.getVendorOrders(p, statusParam);
       const data = res.data?.data ?? res.data ?? {};
       const list: Order[] = data?.orders ?? (Array.isArray(data) ? data : []);
       setOrders(list);
@@ -56,7 +57,7 @@ export default function SellerOrdersPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filter]);
 
   useEffect(() => { fetchOrders(1); }, [fetchOrders]);
 
@@ -79,9 +80,7 @@ export default function SellerOrdersPage() {
     }
   };
 
-  const filtered = filter === 'All'
-    ? orders
-    : orders.filter((o) => o.items.some((it) => it.status === filter));
+  const filtered = orders;
 
   const pendingCount = orders.reduce((n, o) => n + o.items.filter((it) => it.status === 'Pending').length, 0);
 

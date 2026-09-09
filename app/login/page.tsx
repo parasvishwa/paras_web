@@ -93,7 +93,10 @@ function LoginForm() {
     setLoading(true);
     try {
       const res = await authApi.verifyOtp(cleaned, code, pinId);
-      const { token, user } = (res.data?.data ?? res.data) as { token: string; user: GbUser };
+      const payload = res.data?.data ?? res.data;
+      const token: string | undefined = payload?.token;
+      const user: GbUser | undefined = payload?.user;
+      if (!token || !user) throw new Error('Unexpected response from server');
       saveAuth(token, user);
       const hasRole = Array.isArray(user.role) ? user.role.length > 0 : !!user.role;
       toast.success(hasRole ? t('welcomeBack') : t('otpVerified'));

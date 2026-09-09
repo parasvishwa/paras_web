@@ -4,7 +4,7 @@ const V2_PATHS = ['/posts'];
 const UAT_V1 = 'https://uat.gaubook.org/api/v1';
 const PROD_V1 = 'https://app.gaubook.org/api/v1';
 const PROD_V2 = 'https://app.gaubook.org/api/v2';
-const LOCAL_V1 = 'http://localhost:5001/v1';
+const LOCAL_V1 = process.env.BACKEND_URL ?? 'http://localhost:5001/v1';
 
 // These endpoints exist on UAT but not yet deployed to prod
 const UAT_ONLY: string[] = [];
@@ -13,7 +13,7 @@ const UAT_ONLY: string[] = [];
 const ALLOWED_PATH_PREFIXES = [
   '/auth/', '/user/', '/posts', '/explore/', '/products', '/rescue',
   '/reviews', '/notifications', '/orders', '/master-data/', '/expert-banners/',
-  '/events', '/post-share-counts', '/gaushala-claims',
+  '/events', '/post-share-counts', '/gaushala-claims', '/follow', '/config',
 ];
 
 const ALLOWED_ORIGINS = [

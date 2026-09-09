@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
 import { Camera, ChevronRight, Check } from 'lucide-react';
-import { apiV1 } from '@/lib/api';
+import { authApi } from '@/lib/api';
 import { saveAuth, getStoredUser, getToken, ROLES } from '@/lib/auth';
 import type { GbUser } from '@/lib/auth';
 
@@ -69,8 +69,11 @@ export default function RegisterPage() {
       if (ROLES_WITH_BIZ.includes(selectedRole)) fd.append('businessName', businessName.trim());
       if (photo) fd.append('profilePhoto', photo);
 
-      const res = await apiV1.post('/auth/user/social-signup', fd);
-      const { token, user } = (res.data?.data ?? res.data) as { token: string; user: GbUser };
+      const res = await authApi.socialSignup(fd);
+      const payload = res.data?.data ?? res.data;
+      const token: string | undefined = payload?.token;
+      const user: GbUser | undefined = payload?.user;
+      if (!token || !user) throw new Error('Unexpected response from server');
       saveAuth(token, user);
       toast.success('Profile created! Welcome to Gaubook.');
       router.push('/');

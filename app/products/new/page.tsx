@@ -37,6 +37,7 @@ export default function NewProductPage() {
   const [notifyTitle, setNotifyTitle] = useState('');
   const [notifyMessage, setNotifyMessage] = useState('');
   const [notifySending, setNotifySending] = useState(false);
+  const [createdProductId, setCreatedProductId] = useState<string | null>(null);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -123,7 +124,9 @@ export default function NewProductPage() {
       if (stock && Number(stock) > 0) fd.append('stock', stock);
       fd.append('category', selectedCat);
       images.forEach((img) => fd.append('images', img));
-      await marketApi.createProduct(fd);
+      const createRes = await marketApi.createProduct(fd);
+      const newId: string | undefined = createRes.data?.data?.id ?? createRes.data?.id;
+      if (newId) setCreatedProductId(newId);
       toast.success('Product listed!');
 
       // Fetch notification template and show the notify modal
@@ -149,7 +152,7 @@ export default function NewProductPage() {
   const handleNotifyFollowers = async () => {
     setNotifySending(true);
     try {
-      await notifApi.sendToFollowers({ type: 'product', title: notifyTitle, message: notifyMessage });
+      await notifApi.sendToFollowers({ type: 'product', title: notifyTitle, message: notifyMessage, ...(createdProductId ? { productId: createdProductId } : {}) });
       toast.success('Followers notified!');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Could not send notification.';

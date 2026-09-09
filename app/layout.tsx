@@ -39,9 +39,9 @@ export const metadata: Metadata = {
       "India's largest platform to connect with gaushalas, buy authentic gau products, and join the cow protection community.",
     images: [
       {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
+        url: '/logo.png',
+        width: 512,
+        height: 512,
         alt: 'Gaubook — India\'s Largest Gau Community',
       },
     ],
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
     creator: '@gaubookapp',
     title: "Gaubook — India's Largest Gau Community",
     description: "India's largest gau seva platform — gaushalas, products, rescue alerts.",
-    images: ['/og-image.png'],
+    images: ['/logo.png'],
   },
   alternates: { canonical: 'https://www.gaubook.org' },
   robots: {
@@ -83,7 +83,7 @@ const orgJsonLd = {
   '@type': 'Organization',
   name: 'Gaubook',
   url: 'https://www.gaubook.org',
-  logo: 'https://www.gaubook.org/og-image.png',
+  logo: 'https://www.gaubook.org/logo.png',
   sameAs: [
     'https://www.instagram.com/gaubookapp',
     'https://www.facebook.com/share/1LEDgpHdLe/',

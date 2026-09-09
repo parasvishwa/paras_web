@@ -288,6 +288,7 @@ export default function ProfileDetailClientPage() {
           following_count: typeof base.following_count === 'string' ? parseInt(base.following_count) : base.following_count,
           reviewCount: typeof base.reviewCount === 'string' ? parseInt(base.reviewCount) : base.reviewCount,
         };
+        if (base.isFollowing === true) setFollowing(true);
 
         if (role === 'Vendor' && base.vendorProfile) {
           const vp = base.vendorProfile;

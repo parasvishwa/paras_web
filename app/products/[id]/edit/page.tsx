@@ -102,17 +102,18 @@ export default function EditProductPage() {
   const totalImageCount = existingImages.filter((_, i) => !removedExisting.has(i)).length + newImages.length;
 
   const addFiles = useCallback((files: FileList | null) => {
-    if (!files || totalImageCount >= 1) return;
+    if (!files || totalImageCount >= 10) return;
     const allowed = Array.from(files).filter((f) => f.type.startsWith('image/'));
-    const toAdd = allowed.slice(0, 1);
+    const slots = 10 - totalImageCount;
+    const toAdd = allowed.slice(0, slots);
     if (!toAdd.length) return;
     const oversized = toAdd.find((f) => f.size > 10 * 1024 * 1024);
     if (oversized) {
       toast.error(`"${oversized.name}" exceeds 10 MB.`);
       return;
     }
-    setNewImages([toAdd[0]]);
-    setNewPreviews([URL.createObjectURL(toAdd[0])]);
+    setNewImages((prev) => [...prev, ...toAdd]);
+    setNewPreviews((prev) => [...prev, ...toAdd.map((f) => URL.createObjectURL(f))]);
   }, [totalImageCount]);
 
   const removeExisting = (i: number) => setRemovedExisting((prev) => new Set([...prev, i]));
