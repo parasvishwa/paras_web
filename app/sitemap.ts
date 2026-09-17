@@ -1,8 +1,26 @@
 import type { MetadataRoute } from 'next';
 
+// Generate on-request (cached via the per-fetch revalidate below), never at
+// build time — otherwise `next build` blocks on live API calls and times out.
+export const dynamic = 'force-dynamic';
+
 const API = 'https://app.gaubook.org/api/v1';
 const SITE = 'https://www.gaubook.org';
 const LIMIT = 100;
+const MAX_PAGES = 50;        // safety cap so pagination can never run away
+const FETCH_TIMEOUT_MS = 15000;
+
+// fetch that can never hang — aborts after FETCH_TIMEOUT_MS.
+async function timedFetch(url: string): Promise<Response | null> {
+  try {
+    return await fetch(url, {
+      next: { revalidate: 86400 },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+  } catch {
+    return null;
+  }
+}
 
 function makeSlug(name: string, city: string, state: string, id: string): string {
   const nameSlug = (name || '').toLowerCase().replace(/[^\w\s-]/g, '').trim().replace(/[\s_]+/g, '-').replace(/-+/g, '-');
@@ -27,23 +45,18 @@ interface ProfileRow {
 async function fetchAllProfiles(role: string): Promise<ProfileRow[]> {
   const results: ProfileRow[] = [];
   let page = 1;
-  while (true) {
-    try {
-      const res = await fetch(
-        `${API}/explore/gaushalas?role=${encodeURIComponent(role)}&page=${page}&limit=${LIMIT}`,
-        { next: { revalidate: 86400 } }
-      );
-      if (!res.ok) break;
-      const json = await res.json();
-      const items: ProfileRow[] = json?.data?.gaushalas ?? [];
-      if (!items.length) break;
-      results.push(...items);
-      const total: number = json?.data?.total ?? 0;
-      if (results.length >= total) break;
-      page++;
-    } catch {
-      break;
-    }
+  while (page <= MAX_PAGES) {
+    const res = await timedFetch(
+      `${API}/explore/gaushalas?role=${encodeURIComponent(role)}&page=${page}&limit=${LIMIT}`
+    );
+    if (!res || !res.ok) break;
+    const json = await res.json().catch(() => null);
+    const items: ProfileRow[] = json?.data?.gaushalas ?? [];
+    if (!items.length) break;
+    results.push(...items);
+    const total: number = json?.data?.total ?? 0;
+    if (results.length >= total) break;
+    page++;
   }
   return results;
 }
@@ -53,21 +66,15 @@ interface ProductRow { id: string }
 async function fetchAllProducts(): Promise<ProductRow[]> {
   const results: ProductRow[] = [];
   let page = 1;
-  while (true) {
-    try {
-      const res = await fetch(`${API}/products?page=${page}&limit=${LIMIT}`, {
-        next: { revalidate: 86400 },
-      });
-      if (!res.ok) break;
-      const json = await res.json();
-      const items: ProductRow[] = json?.data ?? [];
-      if (!items.length) break;
-      results.push(...items);
-      if (items.length < LIMIT) break;
-      page++;
-    } catch {
-      break;
-    }
+  while (page <= MAX_PAGES) {
+    const res = await timedFetch(`${API}/products?page=${page}&limit=${LIMIT}`);
+    if (!res || !res.ok) break;
+    const json = await res.json().catch(() => null);
+    const items: ProductRow[] = json?.data ?? [];
+    if (!items.length) break;
+    results.push(...items);
+    if (items.length < LIMIT) break;
+    page++;
   }
   return results;
 }
